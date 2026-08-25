@@ -2,3 +2,6 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# 原始数据集（过大，不纳入版本控制）
+data/raw/*.csv
