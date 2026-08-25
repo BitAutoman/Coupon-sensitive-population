@@ -1,0 +1,321 @@
+{
+  "features": [
+    "customer_stage_live_yesterday",
+    "l360d_live_buy_days",
+    "l180d_live_buy_days",
+    "l90d_live_buy_days",
+    "l60d_live_buy_days",
+    "l30d_live_buy_days",
+    "l7d_live_buy_days",
+    "l360d_live_dgmv",
+    "l180d_live_dgmv",
+    "l90d_live_dgmv",
+    "l60d_live_dgmv",
+    "l30d_live_dgmv",
+    "l7d_live_dgmv",
+    "l360d_live_order_cnt",
+    "l180d_live_order_cnt",
+    "l90d_live_order_cnt",
+    "l60d_live_order_cnt",
+    "l30d_live_order_cnt",
+    "l7d_live_order_cnt",
+    "l360d_dgmv_per_live_order",
+    "l180d_dgmv_per_live_order",
+    "l60d_dgmv_per_live_order",
+    "ltd_1st_live_entrance_type",
+    "l720d_1st_live_entrance_type",
+    "l720d_2nd_live_entrance_type",
+    "l720d_last_live_entrance_type",
+    "l720d_last_reverse_live_entrance_type",
+    "live_shequ_active_flag",
+    "live_buy_active_flag",
+    "first_live_view_to_today_days",
+    "second_last_live_view_to_today_days",
+    "last_live_view_to_today_days",
+    "first_goods_live_view_to_today_days",
+    "second_last_goods_live_view_to_today_days",
+    "last_goods_live_view_to_today_days",
+    "first_goods_live_buy_to_today_days",
+    "second_last_goods_live_buy_to_today_days",
+    "last_goods_live_buy_to_today_days",
+    "live_impression_cnt_30d",
+    "live_impression_cnt_14d",
+    "live_impression_cnt_7d",
+    "live_impression_cnt_3d",
+    "live_click_cnt_30d",
+    "live_click_cnt_14d",
+    "live_click_cnt_7d",
+    "live_click_cnt_3d",
+    "live_view_cnt_30d",
+    "live_view_cnt_14d",
+    "live_view_cnt_7d",
+    "live_view_cnt_3d",
+    "goods_live_view_cnt_30d",
+    "goods_live_view_cnt_14d",
+    "goods_live_view_cnt_7d",
+    "goods_live_view_cnt_3d",
+    "live_view_duration_30d",
+    "live_view_duration_14d",
+    "live_view_duration_7d",
+    "live_view_duration_3d",
+    "live_engage_cnt_30d",
+    "live_engage_cnt_14d",
+    "live_engage_cnt_7d",
+    "live_engage_cnt_3d",
+    "live_goods_impression_cnt_30d",
+    "live_goods_impression_cnt_14d",
+    "live_goods_impression_cnt_7d",
+    "live_goods_impression_cnt_3d",
+    "live_goods_click_cnt_30d",
+    "live_goods_click_cnt_14d",
+    "live_goods_click_cnt_7d",
+    "live_goods_click_cnt_3d",
+    "live_add_cart_cnt_30d",
+    "live_add_cart_cnt_14d",
+    "live_add_cart_cnt_7d",
+    "live_add_cart_cnt_3d",
+    "live_buy_now_cnt_30d",
+    "live_buy_now_cnt_14d",
+    "live_buy_now_cnt_7d",
+    "live_buy_now_cnt_3d",
+    "live_buy_cnt_30d",
+    "live_buy_cnt_14d",
+    "live_buy_cnt_7d",
+    "live_buy_cnt_3d",
+    "live_impression_days_30d",
+    "live_impression_days_14d",
+    "live_impression_days_7d",
+    "live_impression_days_3d",
+    "live_click_days_30d",
+    "live_click_days_14d",
+    "live_click_days_7d",
+    "live_click_days_3d",
+    "live_view_days_30d",
+    "live_view_days_14d",
+    "live_view_days_7d",
+    "live_view_days_3d",
+    "goods_live_view_days_30d",
+    "goods_live_view_days_14d",
+    "goods_live_view_days_7d",
+    "goods_live_view_days_3d",
+    "live_engage_days_30d",
+    "live_engage_days_14d",
+    "live_engage_days_7d",
+    "live_engage_days_3d",
+    "live_goods_impression_days_30d",
+    "live_goods_impression_days_14d",
+    "live_goods_impression_days_7d",
+    "live_goods_impression_days_3d",
+    "live_goods_click_days_30d",
+    "live_goods_click_days_14d",
+    "live_goods_click_days_7d",
+    "live_goods_click_days_3d",
+    "live_add_cart_days_30d",
+    "live_add_cart_days_14d",
+    "live_add_cart_days_7d",
+    "live_add_cart_days_3d",
+    "live_buy_now_days_30d",
+    "live_buy_now_days_14d",
+    "live_buy_now_days_7d",
+    "live_buy_now_days_3d",
+    "live_buy_days_30d",
+    "live_buy_days_14d",
+    "live_buy_days_7d",
+    "live_buy_days_3d",
+    "live_top_first_category_impression_30d",
+    "live_top_first_category_impression_14d",
+    "live_top_first_category_impression_7d",
+    "live_top_first_category_impression_3d",
+    "live_top_first_category_click_30d",
+    "live_top_first_category_click_14d",
+    "live_top_first_category_click_7d",
+    "live_top_first_category_click_3d",
+    "top_live_entrance_type_click_30d",
+    "top_live_entrance_type_click_14d",
+    "top_live_entrance_type_click_7d",
+    "top_live_entrance_type_click_3d",
+    "live_top_entrance_channel_group_click_30d",
+    "live_top_entrance_channel_group_click_14d",
+    "live_top_entrance_channel_group_click_7d",
+    "live_top_entrance_channel_group_click_3d",
+    "live_impression_to_view_30d",
+    "live_goods_impression_to_click_30d",
+    "live_goods_impression_to_add_cart_30d",
+    "live_goods_impression_to_buy_now_30d",
+    "live_goods_impression_to_buy_30d"
+  ],
+  "best_parameters": {
+    "learning_rate": 0.03,
+    "num_leaves": 127,
+    "min_child_samples": 150,
+    "feature_fraction": 0.75,
+    "bagging_fraction": 0.85,
+    "bagging_freq": 5,
+    "lambda_l1": 0.5,
+    "lambda_l2": 1.0
+  },
+  "search": [
+    {
+      "candidate": 0,
+      "average_precision": 0.5037514189165492,
+      "best_iteration": 262,
+      "parameters": {
+        "learning_rate": 0.05,
+        "num_leaves": 31,
+        "min_child_samples": 200,
+        "feature_fraction": 0.8,
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "lambda_l1": 0.0,
+        "lambda_l2": 2.0
+      }
+    },
+    {
+      "candidate": 1,
+      "average_precision": 0.5047066708826674,
+      "best_iteration": 437,
+      "parameters": {
+        "learning_rate": 0.03,
+        "num_leaves": 63,
+        "min_child_samples": 300,
+        "feature_fraction": 0.75,
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "lambda_l1": 0.5,
+        "lambda_l2": 5.0
+      }
+    },
+    {
+      "candidate": 2,
+      "average_precision": 0.5022201790546321,
+      "best_iteration": 109,
+      "parameters": {
+        "learning_rate": 0.05,
+        "num_leaves": 63,
+        "min_child_samples": 100,
+        "feature_fraction": 0.8,
+        "bagging_fraction": 0.8,
+        "bagging_freq": 5,
+        "lambda_l1": 0.1,
+        "lambda_l2": 0.1
+      }
+    },
+    {
+      "candidate": 3,
+      "average_precision": 0.5050641518480801,
+      "best_iteration": 296,
+      "parameters": {
+        "learning_rate": 0.03,
+        "num_leaves": 127,
+        "min_child_samples": 150,
+        "feature_fraction": 0.75,
+        "bagging_fraction": 0.85,
+        "bagging_freq": 5,
+        "lambda_l1": 0.5,
+        "lambda_l2": 1.0
+      }
+    }
+  ],
+  "top_features": [
+    {
+      "feature": "numeric__l180d_live_dgmv",
+      "importance": 911477.0743575096,
+      "gain_ratio": 0.347747873923652
+    },
+    {
+      "feature": "numeric__l90d_live_dgmv",
+      "importance": 638349.2925209999,
+      "gain_ratio": 0.24354382083753415
+    },
+    {
+      "feature": "numeric__live_goods_impression_cnt_30d",
+      "importance": 116237.84125232697,
+      "gain_ratio": 0.04434720664089585
+    },
+    {
+      "feature": "numeric__l360d_live_dgmv",
+      "importance": 86017.23127031326,
+      "gain_ratio": 0.03281740170605539
+    },
+    {
+      "feature": "numeric__live_goods_impression_cnt_14d",
+      "importance": 60444.18108463287,
+      "gain_ratio": 0.023060739600119517
+    },
+    {
+      "feature": "numeric__live_goods_click_cnt_30d",
+      "importance": 59724.54032993317,
+      "gain_ratio": 0.022786181358913027
+    },
+    {
+      "feature": "numeric__l60d_live_dgmv",
+      "importance": 56464.68929052353,
+      "gain_ratio": 0.021542478911364824
+    },
+    {
+      "feature": "numeric__live_add_cart_cnt_30d",
+      "importance": 37776.3452167511,
+      "gain_ratio": 0.01441247849595229
+    },
+    {
+      "feature": "numeric__l360d_live_order_cnt",
+      "importance": 29249.08085012436,
+      "gain_ratio": 0.01115914592478521
+    },
+    {
+      "feature": "numeric__l180d_live_order_cnt",
+      "importance": 28965.73257112503,
+      "gain_ratio": 0.01105104253483281
+    },
+    {
+      "feature": "numeric__live_goods_click_cnt_14d",
+      "importance": 25037.74922466278,
+      "gain_ratio": 0.009552433413476027
+    },
+    {
+      "feature": "numeric__live_goods_impression_cnt_7d",
+      "importance": 23032.64282464981,
+      "gain_ratio": 0.008787442710789711
+    },
+    {
+      "feature": "numeric__first_goods_live_buy_to_today_days",
+      "importance": 18628.05142068863,
+      "gain_ratio": 0.007106997486964895
+    },
+    {
+      "feature": "numeric__first_live_view_to_today_days",
+      "importance": 15169.735152721405,
+      "gain_ratio": 0.005787576337081453
+    },
+    {
+      "feature": "numeric__l360d_dgmv_per_live_order",
+      "importance": 14930.406397819519,
+      "gain_ratio": 0.005696267331043544
+    },
+    {
+      "feature": "numeric__live_goods_impression_to_click_30d",
+      "importance": 13680.107622623444,
+      "gain_ratio": 0.005219251777854497
+    },
+    {
+      "feature": "numeric__l360d_live_buy_days",
+      "importance": 12068.52936887741,
+      "gain_ratio": 0.004604400425946595
+    },
+    {
+      "feature": "numeric__first_goods_live_view_to_today_days",
+      "importance": 11952.811522006989,
+      "gain_ratio": 0.004560251608212942
+    },
+    {
+      "feature": "numeric__live_goods_impression_cnt_3d",
+      "importance": 11875.343865394592,
+      "gain_ratio": 0.004530696050928304
+    },
+    {
+      "feature": "numeric__l90d_live_order_cnt",
+      "importance": 11741.273071289062,
+      "gain_ratio": 0.004479545193800802
+    }
+  ]
+}

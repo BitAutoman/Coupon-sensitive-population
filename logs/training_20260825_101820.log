@@ -1,0 +1,37 @@
+2026-08-25 10:18:20,234 INFO 读取数据：/Users/yukewei/Public/xhs/券敏感人群第一阶段/data/raw/训练集数据.csv
+2026-08-25 10:18:36,266 INFO 读取数据：/Users/yukewei/Public/xhs/券敏感人群第一阶段/data/raw/验证集数据.csv
+2026-08-25 10:18:39,640 INFO 数据校验通过；直播特征=143，全量特征=147
+2026-08-25 10:18:43,061 INFO 训练 E3：双轨 RFM 原值轻量模型
+2026-08-25 10:18:43,247 INFO 拟合特征处理器：数值=7，类别=2
+2026-08-25 10:18:44,089 INFO 训练候选模型 1/4
+2026-08-25 10:18:49,039 INFO 候选 0: AP=0.4602, best_iteration=187
+2026-08-25 10:18:49,039 INFO 训练候选模型 2/4
+2026-08-25 10:18:57,488 INFO 候选 1: AP=0.4601, best_iteration=249
+2026-08-25 10:18:57,489 INFO 训练候选模型 3/4
+2026-08-25 10:19:03,264 INFO 候选 2: AP=0.4611, best_iteration=119
+2026-08-25 10:19:03,264 INFO 训练候选模型 4/4
+2026-08-25 10:19:14,711 INFO 候选 3: AP=0.4608, best_iteration=169
+2026-08-25 10:19:14,946 INFO Top 5 特征: ['numeric__l180d_live_dgmv', 'numeric__l180d_live_order_cnt', 'numeric__last_goods_live_buy_to_today_days', 'numeric__l360d_dgmv', 'categorical__live_buy_active_flag']
+2026-08-25 10:19:14,946 INFO 训练 E4：143 个直播特征
+2026-08-25 10:19:14,947 INFO 拟合特征处理器：数值=119，类别=24
+2026-08-25 10:19:27,749 INFO 训练候选模型 1/4
+2026-08-25 10:19:40,593 INFO 候选 0: AP=0.5038, best_iteration=262
+2026-08-25 10:19:40,593 INFO 训练候选模型 2/4
+2026-08-25 10:20:07,719 INFO 候选 1: AP=0.5047, best_iteration=437
+2026-08-25 10:20:07,721 INFO 训练候选模型 3/4
+2026-08-25 10:20:18,612 INFO 候选 2: AP=0.5022, best_iteration=109
+2026-08-25 10:20:18,612 INFO 训练候选模型 4/4
+2026-08-25 10:20:44,557 INFO 候选 3: AP=0.5051, best_iteration=296
+2026-08-25 10:20:45,145 INFO Top 5 特征: ['numeric__l180d_live_dgmv', 'numeric__l90d_live_dgmv', 'numeric__live_goods_impression_cnt_30d', 'numeric__l360d_live_dgmv', 'numeric__live_goods_impression_cnt_14d']
+2026-08-25 10:20:45,145 INFO 训练 E5：143 个直播特征 + 4 个全平台 RFM 原始字段
+2026-08-25 10:20:45,146 INFO 拟合特征处理器：数值=123，类别=24
+2026-08-25 10:21:00,719 INFO 训练候选模型 1/4
+2026-08-25 10:21:21,738 INFO 候选 0: AP=0.5055, best_iteration=499
+2026-08-25 10:21:21,738 INFO 训练候选模型 2/4
+2026-08-25 10:21:46,957 INFO 候选 1: AP=0.5052, best_iteration=426
+2026-08-25 10:21:46,958 INFO 训练候选模型 3/4
+2026-08-25 10:22:02,904 INFO 候选 2: AP=0.5035, best_iteration=263
+2026-08-25 10:22:02,904 INFO 训练候选模型 4/4
+2026-08-25 10:22:27,939 INFO 候选 3: AP=0.5065, best_iteration=258
+2026-08-25 10:22:28,491 INFO Top 5 特征: ['numeric__l180d_live_dgmv', 'numeric__l90d_live_dgmv', 'numeric__l60d_live_dgmv', 'numeric__l360d_live_dgmv', 'numeric__live_goods_impression_cnt_30d']
+2026-08-25 10:22:28,493 INFO 训练流程完成，结果目录：/Users/yukewei/Public/xhs/券敏感人群第一阶段/outputs/20260825_101820

@@ -1,0 +1,4 @@
+﻿dataset,rows,columns,positive_rate,unique_users,date_min,date_max
+train,5000,159,0.057,5000,20260713,20260714
+validation,5000,159,0.0626,5000,20260726,20260726
+test,5000,159,0.0858,5000,20260802,20260802

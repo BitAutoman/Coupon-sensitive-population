@@ -1,0 +1,108 @@
+{
+  "features": [
+    "l720d_last_to_today_days",
+    "l360d_buy_days",
+    "l360d_dgmv",
+    "total_orders",
+    "last_goods_live_buy_to_today_days",
+    "l180d_live_order_cnt",
+    "l180d_live_dgmv",
+    "customer_stage_live_yesterday",
+    "live_buy_active_flag"
+  ],
+  "best_parameters": {
+    "learning_rate": 0.01,
+    "num_leaves": 255,
+    "min_child_samples": 300,
+    "feature_fraction": 0.7,
+    "bagging_fraction": 0.9,
+    "bagging_freq": 5,
+    "lambda_l1": 1.0,
+    "lambda_l2": 2.0
+  },
+  "search": [
+    {
+      "candidate": 0,
+      "average_precision": 0.4378521158810641,
+      "best_iteration": 4,
+      "parameters": {
+        "learning_rate": 0.05,
+        "num_leaves": 63,
+        "min_child_samples": 100,
+        "feature_fraction": 0.8,
+        "bagging_fraction": 0.8,
+        "bagging_freq": 5,
+        "lambda_l1": 0.1,
+        "lambda_l2": 0.1
+      }
+    },
+    {
+      "candidate": 1,
+      "average_precision": 0.44313685355188515,
+      "best_iteration": 7,
+      "parameters": {
+        "learning_rate": 0.03,
+        "num_leaves": 127,
+        "min_child_samples": 200,
+        "feature_fraction": 0.75,
+        "bagging_fraction": 0.85,
+        "bagging_freq": 5,
+        "lambda_l1": 0.5,
+        "lambda_l2": 1.0
+      }
+    },
+    {
+      "candidate": 2,
+      "average_precision": 0.45055955138782905,
+      "best_iteration": 24,
+      "parameters": {
+        "learning_rate": 0.01,
+        "num_leaves": 255,
+        "min_child_samples": 300,
+        "feature_fraction": 0.7,
+        "bagging_fraction": 0.9,
+        "bagging_freq": 5,
+        "lambda_l1": 1.0,
+        "lambda_l2": 2.0
+      }
+    }
+  ],
+  "top_features": [
+    {
+      "feature": "l180d_live_dgmv",
+      "importance": 17084045.739593506
+    },
+    {
+      "feature": "l180d_live_order_cnt",
+      "importance": 3982787.805683136
+    },
+    {
+      "feature": "l360d_dgmv",
+      "importance": 1284675.7347869873
+    },
+    {
+      "feature": "last_goods_live_buy_to_today_days",
+      "importance": 760011.5071029663
+    },
+    {
+      "feature": "l360d_buy_days",
+      "importance": 230553.0930480957
+    },
+    {
+      "feature": "l720d_last_to_today_days",
+      "importance": 181632.62065124512
+    },
+    {
+      "feature": "total_orders",
+      "importance": 171959.1778717041
+    },
+    {
+      "feature": "live_buy_active_flag",
+      "importance": 168738.20372772217
+    },
+    {
+      "feature": "customer_stage_live_yesterday",
+      "importance": 39076.83406448364
+    }
+  ]
+}

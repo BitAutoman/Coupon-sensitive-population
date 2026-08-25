@@ -1,0 +1,4 @@
+2026-08-25 10:05:02,267 INFO 读取数据：/Users/yukewei/Public/xhs/券敏感人群第一阶段/data/raw/训练集数据.csv
+2026-08-25 10:05:18,396 INFO 读取数据：/Users/yukewei/Public/xhs/券敏感人群第一阶段/data/raw/验证集数据.csv
+2026-08-25 10:05:22,084 INFO 数据校验通过；直播特征=143，全量特征=147
+2026-08-25 10:05:25,966 INFO 训练流程完成，结果目录：/Users/yukewei/Public/xhs/券敏感人群第一阶段/outputs/20260825_100502

@@ -1,0 +1,55 @@
+{
+  "features": [
+    "l720d_last_to_today_days",
+    "l360d_buy_days",
+    "l360d_dgmv",
+    "total_orders",
+    "last_goods_live_buy_to_today_days",
+    "l180d_live_order_cnt",
+    "l180d_live_dgmv",
+    "customer_stage_live_yesterday",
+    "live_buy_active_flag"
+  ],
+  "best_parameters": {
+    "learning_rate": 0.05,
+    "num_leaves": 31,
+    "min_child_samples": 200,
+    "feature_fraction": 0.8,
+    "bagging_fraction": 0.8,
+    "bagging_freq": 1,
+    "lambda_l1": 0.0,
+    "lambda_l2": 2.0
+  },
+  "search": [
+    {
+      "candidate": 0,
+      "average_precision": 0.4541281346954009,
+      "best_iteration": 44,
+      "parameters": {
+        "learning_rate": 0.05,
+        "num_leaves": 31,
+        "min_child_samples": 200,
+        "feature_fraction": 0.8,
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "lambda_l1": 0.0,
+        "lambda_l2": 2.0
+      }
+    },
+    {
+      "candidate": 1,
+      "average_precision": 0.44963132350083296,
+      "best_iteration": 100,
+      "parameters": {
+        "learning_rate": 0.03,
+        "num_leaves": 63,
+        "min_child_samples": 300,
+        "feature_fraction": 0.75,
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "lambda_l1": 0.5,
+        "lambda_l2": 5.0
+      }
+    }
+  ]
+}

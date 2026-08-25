@@ -1,0 +1,204 @@
+训练集字段含义对应关系			
+			
+数据表     mall_data.dwd_user_wise_repurchase_14d_type2_train_sample_v2_di			
+表中文名   用户14d复购样本表v2-不区分用户阶段（训练样本，仅当日下单）			
+负责人     延昭(杨经纬) yangjingwei@xiaohongshu.com			
+样本粒度   user_id × dtm（单分区内 user_id 唯一）			
+样本域     当日下单的用户			
+总列数     155 = 3 主键/标识 + 9 Label + 143 直播特征			
+中文名来源 数据地图（Crux2）字段元数据实查			
+			
+			
+			
+【主键与样本标识】共 3 列			
+--------------------------------------------------------------------------------			
+  1  dtm                                            string  分区			
+  2  user_id                                        string  用户ID			
+  3  user_type                                      string  用户类型			
+			
+【Label（预测目标候选，9 选 1 做 y，其余 8 列必须剔除）】共 9 列			
+--------------------------------------------------------------------------------			
+  4  flag_repurchase_14d                            float   14天内复购标志			
+  5  flag_repurchase_paid_14d                       float   14天内付费复购标志			
+  6  flag_repurchase_live_14d                       float   14天内直播复购标志			
+  7  flag_repurchase_live_paid_14d                  float   14天内直播付费复购标志			
+  8  flag_repurchase_new_category_14d               float   14天内新类目复购标志			
+  9  flag_repurchase_new_category_paid_14d          float   14天内新类目付费复购标志			
+ 10  repurchase_days_14d                            float   14天内复购天数			
+ 11  repurchase_pgmv_14d                            float   14天内复购PGMV			
+ 12  repurchase_dgmv_14d                            float   14天内复购DGMV			
+			
+【直播交易 LTD】共 27 列			
+--------------------------------------------------------------------------------			
+ 13  customer_stage_live_yesterday                  string  直播用户阶段（ds-16天的状态）			
+ 14  l360d_live_buy_days                            float   近360天直播购买天数			
+ 15  l180d_live_buy_days                            float   近180天直播购买天数			
+ 16  l90d_live_buy_days                             float   近90天直播购买天数			
+ 17  l60d_live_buy_days                             float   近60天直播购买天数			
+ 18  l30d_live_buy_days                             float   近30天直播购买天数			
+ 19  l7d_live_buy_days                              float   近7天直播购买天数			
+ 20  l360d_live_dgmv                                float   近360天直播DGMV			
+ 21  l180d_live_dgmv                                float   近180天直播DGMV			
+ 22  l90d_live_dgmv                                 float   近90天直播DGMV			
+ 23  l60d_live_dgmv                                 float   近60天直播DGMV			
+ 24  l30d_live_dgmv                                 float   近30天直播DGMV			
+ 25  l7d_live_dgmv                                  float   近7天直播DGMV			
+ 26  l360d_live_order_cnt                           float   近360天直播订单数			
+ 27  l180d_live_order_cnt                           float   近180天直播订单数			
+ 28  l90d_live_order_cnt                            float   近90天直播订单数			
+ 29  l60d_live_order_cnt                            float   近60天直播订单数			
+ 30  l30d_live_order_cnt                            float   近30天直播订单数			
+ 31  l7d_live_order_cnt                             float   近7天直播订单数			
+ 32  l360d_dgmv_per_live_order                      float   近360天直播每单DGMV			
+ 33  l180d_dgmv_per_live_order                      float   近180天直播每单DGMV			
+ 34  l60d_dgmv_per_live_order                       float   近60天直播每单DGMV			
+ 35  ltd_1st_live_entrance_type                     string  用户生命周期首单直播入口类型			
+ 36  l720d_1st_live_entrance_type                   string  距今720天内首单直播入口类型			
+ 37  l720d_2nd_live_entrance_type                   string  距今720天内第二单直播入口类型			
+ 38  l720d_last_live_entrance_type                  string  距今720天内最后一单直播入口类型			
+ 39  l720d_last_reverse_live_entrance_type          string  720天最后一次逆向订单的直播入口类型			
+			
+【直播活跃标志与首末次时间】共 11 列			
+--------------------------------------------------------------------------------			
+ 40  live_shequ_active_flag                         string  直播社区活跃标志			
+ 41  live_buy_active_flag                           string  直播购买活跃标志			
+ 42  first_live_view_to_today_days                  float   首次直播观看距今天数			
+ 43  second_last_live_view_to_today_days            float   倒数第二次直播观看距今天数			
+ 44  last_live_view_to_today_days                   float   最近一次直播观看距今天数			
+ 45  first_goods_live_view_to_today_days            float   首次商品直播观看距今天数			
+ 46  second_last_goods_live_view_to_today_days      float   倒数第二次商品直播观看距今天数			
+ 47  last_goods_live_view_to_today_days             float   最近一次商品直播观看距今天数			
+ 48  first_goods_live_buy_to_today_days             float   首次商品直播购买距今天数			
+ 49  second_last_goods_live_buy_to_today_days       float   倒数第二次商品直播购买距今天数			
+ 50  last_goods_live_buy_to_today_days              float   最近一次商品直播购买距今天数			
+			
+【直播漏斗 · 次数 (30/14/7/3d)】共 44 列			
+--------------------------------------------------------------------------------			
+ 51  live_impression_cnt_30d                        float   近30天直播曝光次数			
+ 52  live_impression_cnt_14d                        float   近14天直播曝光次数			
+ 53  live_impression_cnt_7d                         float   近7天直播曝光次数			
+ 54  live_impression_cnt_3d                         float   近3天直播曝光次数			
+ 55  live_click_cnt_30d                             float   近30天直播点击次数			
+ 56  live_click_cnt_14d                             float   近14天直播点击次数			
+ 57  live_click_cnt_7d                              float   近7天直播点击次数			
+ 58  live_click_cnt_3d                              float   近3天直播点击次数			
+ 59  live_view_cnt_30d                              float   近30天直播观看次数			
+ 60  live_view_cnt_14d                              float   近14天直播观看次数			
+ 61  live_view_cnt_7d                               float   近7天直播观看次数			
+ 62  live_view_cnt_3d                               float   近3天直播观看次数			
+ 63  goods_live_view_cnt_30d                        float   近30天商品直播观看次数			
+ 64  goods_live_view_cnt_14d                        float   近14天商品直播观看次数			
+ 65  goods_live_view_cnt_7d                         float   近7天商品直播观看次数			
+ 66  goods_live_view_cnt_3d                         float   近3天商品直播观看次数			
+ 67  live_view_duration_30d                         float   近30天直播观看时长			
+ 68  live_view_duration_14d                         float   近14天直播观看时长			
+ 69  live_view_duration_7d                          float   近7天直播观看时长			
+ 70  live_view_duration_3d                          float   近3天直播观看时长			
+ 71  live_engage_cnt_30d                            float   近30天直播互动次数			
+ 72  live_engage_cnt_14d                            float   近14天直播互动次数			
+ 73  live_engage_cnt_7d                             float   近7天直播互动次数			
+ 74  live_engage_cnt_3d                             float   近3天直播互动次数			
+ 75  live_goods_impression_cnt_30d                  float   近30天商品曝光次数			
+ 76  live_goods_impression_cnt_14d                  float   近14天商品曝光次数			
+ 77  live_goods_impression_cnt_7d                   float   近7天商品曝光次数			
+ 78  live_goods_impression_cnt_3d                   float   近3天商品曝光次数			
+ 79  live_goods_click_cnt_30d                       float   近30天商品点击次数			
+ 80  live_goods_click_cnt_14d                       float   近14天商品点击次数			
+ 81  live_goods_click_cnt_7d                        float   近7天商品点击次数			
+ 82  live_goods_click_cnt_3d                        float   近3天商品点击次数			
+ 83  live_add_cart_cnt_30d                          float   近30天加入购物车次数			
+ 84  live_add_cart_cnt_14d                          float   近14天加入购物车次数			
+ 85  live_add_cart_cnt_7d                           float   近7天加入购物车次数			
+ 86  live_add_cart_cnt_3d                           float   近3天加入购物车次数			
+ 87  live_buy_now_cnt_30d                           float   近30天立即购买次数			
+ 88  live_buy_now_cnt_14d                           float   近14天立即购买次数			
+ 89  live_buy_now_cnt_7d                            float   近7天立即购买次数			
+ 90  live_buy_now_cnt_3d                            float   近3天立即购买次数			
+ 91  live_buy_cnt_30d                               float   近30天购买次数			
+ 92  live_buy_cnt_14d                               float   近14天购买次数			
+ 93  live_buy_cnt_7d                                float   近7天购买次数			
+ 94  live_buy_cnt_3d                                float   近3天购买次数			
+			
+【直播漏斗 · 天数 (30/14/7/3d)】共 40 列			
+--------------------------------------------------------------------------------			
+ 95  live_impression_days_30d                       float   近30天直播曝光天数			
+ 96  live_impression_days_14d                       float   近14天直播曝光天数			
+ 97  live_impression_days_7d                        float   近7天直播曝光天数			
+ 98  live_impression_days_3d                        float   近3天直播曝光天数			
+ 99  live_click_days_30d                            float   近30天直播点击天数			
+100  live_click_days_14d                            float   近14天直播点击天数			
+101  live_click_days_7d                             float   近7天直播点击天数			
+102  live_click_days_3d                             float   近3天直播点击天数			
+103  live_view_days_30d                             float   近30天直播观看天数			
+104  live_view_days_14d                             float   近14天直播观看天数			
+105  live_view_days_7d                              float   近7天直播观看天数			
+106  live_view_days_3d                              float   近3天直播观看天数			
+107  goods_live_view_days_30d                       float   近30天商品直播观看天数			
+108  goods_live_view_days_14d                       float   近14天商品直播观看天数			
+109  goods_live_view_days_7d                        float   近7天商品直播观看天数			
+110  goods_live_view_days_3d                        float   近3天商品直播观看天数			
+111  live_engage_days_30d                           float   近30天直播互动天数			
+112  live_engage_days_14d                           float   近14天直播互动天数			
+113  live_engage_days_7d                            float   近7天直播互动天数			
+114  live_engage_days_3d                            float   近3天直播互动天数			
+115  live_goods_impression_days_30d                 float   近30天商品曝光天数			
+116  live_goods_impression_days_14d                 float   近14天商品曝光天数			
+117  live_goods_impression_days_7d                  float   近7天商品曝光天数			
+118  live_goods_impression_days_3d                  float   近3天商品曝光天数			
+119  live_goods_click_days_30d                      float   近30天商品点击天数			
+120  live_goods_click_days_14d                      float   近14天商品点击天数			
+121  live_goods_click_days_7d                       float   近7天商品点击天数			
+122  live_goods_click_days_3d                       float   近3天商品点击天数			
+123  live_add_cart_days_30d                         float   近30天加入购物车天数			
+124  live_add_cart_days_14d                         float   近14天加入购物车天数			
+125  live_add_cart_days_7d                          float   近7天加入购物车天数			
+126  live_add_cart_days_3d                          float   近3天加入购物车天数			
+127  live_buy_now_days_30d                          float   近30天立即购买天数			
+128  live_buy_now_days_14d                          float   近14天立即购买天数			
+129  live_buy_now_days_7d                           float   近7天立即购买天数			
+130  live_buy_now_days_3d                           float   近3天立即购买天数			
+131  live_buy_days_30d                              float   近30天购买天数			
+132  live_buy_days_14d                              float   近14天购买天数			
+133  live_buy_days_7d                               float   近7天购买天数			
+134  live_buy_days_3d                               float   近3天购买天数			
+			
+【直播类目偏好与入口偏好】共 16 列			
+--------------------------------------------------------------------------------			
+135  live_top_first_category_impression_30d         string  近30天一级类目曝光			
+136  live_top_first_category_impression_14d         string  近14天一级类目曝光			
+137  live_top_first_category_impression_7d          string  近7天一级类目曝光			
+138  live_top_first_category_impression_3d          string  近3天一级类目曝光			
+139  live_top_first_category_click_30d              string  近30天一级类目点击			
+140  live_top_first_category_click_14d              string  近14天一级类目点击			
+141  live_top_first_category_click_7d               string  近7天一级类目点击			
+142  live_top_first_category_click_3d               string  近3天一级类目点击			
+143  top_live_entrance_type_click_30d               string  近30天直播入口类型点击			
+144  top_live_entrance_type_click_14d               string  近14天直播入口类型点击			
+145  top_live_entrance_type_click_7d                string  近7天直播入口类型点击			
+146  top_live_entrance_type_click_3d                string  近3天直播入口类型点击			
+147  live_top_entrance_channel_group_click_30d      string  近30天直播入口渠道组点击			
+148  live_top_entrance_channel_group_click_14d      string  近14天直播入口渠道组点击			
+149  live_top_entrance_channel_group_click_7d       string  近7天直播入口渠道组点击			
+150  live_top_entrance_channel_group_click_3d       string  近3天直播入口渠道组点击			
+			
+【直播转化率】共 5 列			
+--------------------------------------------------------------------------------			
+151  live_impression_to_view_30d                    float   近30天直播曝光到观看的转化率			
+152  live_goods_impression_to_click_30d             float   近30天直播商品曝光到点击的转化率			
+153  live_goods_impression_to_add_cart_30d          float   近30天直播商品曝光到加入购物车的转化率			
+154  live_goods_impression_to_buy_now_30d           float   近30天直播商品曝光到立即购买的转化率			
+155  live_goods_impression_to_buy_30d               float   近30天直播商品曝光到购买的转化率			
+			
+			
+使用提醒			
+--------------------------------------------------------------------------------			
+1. Label 共 9 列，训练时只能选一列做 y，其余 8 列必须从特征中剔除——它们			
+   互为泄漏，且线上预测时都拿不到（要等 14 天观测窗满）。			
+2. 建议 y = flag_repurchase_live_14d（直播口径），与直播特征口径一致；			
+   dtm=20260802 实测其正样本率 30.9%（799509 / 2588872），无需过采样。			
+3. 名称含 _yesterday 的字段，元数据注明是 ds-16 天的状态；本表所有特征			
+   统一卡在样本日之前，不外接其他表即无穿越风险。			
+4. 原表 616 列中直播相关 149 列，本文件取 143 个特征：149 - 2 个直播 Label			
+   - 4 个 array<string> 列（类目/入口偏好列表，CSV 不便解析，已主动排除）。			
+5. 读 CSV 用 encoding="utf-8-sig"，否则首列列名带 BOM 变成 \ufeffdtm。			
+6. 本表 label 需 14 天观测窗才能生产，分区天然滞后半个月，最新为 20260802。			
