@@ -9,7 +9,11 @@
     "encoding": "utf-8-sig"
   },
   "features": {
-    "id_columns": ["dtm", "user_id", "user_type"],
+    "id_columns": [
+      "dtm",
+      "user_id",
+      "user_type"
+    ],
     "label_columns": [
       "flag_repurchase_14d",
       "flag_repurchase_paid_14d",
@@ -34,9 +38,18 @@
       "n_bins": 5
     },
     "live": {
-      "r_bins": [7, 30, 180],
+      "r_bins": [
+        7,
+        30,
+        180
+      ],
       "n_bins": 3,
-      "alpha_candidates": [20, 50, 100, 200]
+      "alpha_candidates": [
+        20,
+        50,
+        100,
+        200
+      ]
     }
   },
   "model": {
@@ -86,7 +99,12 @@
     ]
   },
   "evaluation": {
-    "lift_fractions": [0.01, 0.05, 0.1, 0.2],
+    "lift_fractions": [
+      0.01,
+      0.05,
+      0.1,
+      0.2
+    ],
     "primary_metric": "average_precision"
   }
 }

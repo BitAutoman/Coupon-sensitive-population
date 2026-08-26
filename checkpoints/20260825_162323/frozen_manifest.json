@@ -1,0 +1,15 @@
+{
+  "run_id": "20260825_162323",
+  "status": "frozen_for_test",
+  "selection_source": "validation_only",
+  "primary_metric": "average_precision",
+  "selected_experiment": "E5_live_plus_platform",
+  "validation_metric": 0.5064565484837275,
+  "best_iteration": 258,
+  "model_file": "E5_live_plus_platform.txt",
+  "preprocessor_file": "E5_live_plus_platform_preprocessor.pkl",
+  "metadata_file": "E5_live_plus_platform_metadata.json",
+  "rfm_file": "rfm_objects.pkl",
+  "resolved_config_file": "/Users/yukewei/Public/xhs/券敏感人群第一阶段/outputs/20260825_162323/resolved_config.json",
+  "migrated_from_legacy_run": true
+}

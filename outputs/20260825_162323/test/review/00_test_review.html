@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>Test Review - Response 模型</title>
+<style>
+body{font-family:'Times New Roman','Songti SC','STSong','SimSun',serif;max-width:1400px;margin:32px auto;padding:0 24px;color:#24303f;line-height:1.65}
+h1,h2{color:#16324f;font-family:'Times New Roman','Songti SC','STSong','SimSun',serif}
+.card{background:#FDEBAA;border-left:5px solid #EDC3A5;padding:14px 20px;margin:16px 0}
+.warning{background:#FCB6A5;border-left:5px solid #EDC3A5;padding:14px 20px;margin:16px 0}
+table{border-collapse:collapse;width:100%;margin:16px 0}
+th,td{border:1px solid #d8dee8;padding:8px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{background:#DBE4FB}
+img{width:100%;border:1px solid #ddd;margin:12px 0 28px}
+code{background:#F1F1F1;padding:2px 5px}
+.path{word-break:break-all}
+.metric-box{display:inline-block;background:#DBE4FB;padding:8px 16px;margin:4px;border-radius:4px}
+</style></head><body>
+<h1>Test Review - Response 模型评估报告</h1>
+<div class="card">
+<b>运行 ID：</b><code>20260825_162323</code><br>
+<b>Test 执行时间：</b>基于已冻结数据，未重新运行<br>
+<b>评估范围：</b>全量用户 (All Users) + 未见用户 (Unseen Users)
+</div>
+
+<h2>一、核心结论</h2>
+<ol><li>最佳模型 E5 直播+全平台特征 在 Test 全量用户上 PR-AUC=0.5427，优于 Validation 的 0.5065。</li><li>Test 正样本率 (9.06%) 高于 Validation (7.18%)，PR-AUC 的提升需结合该基础率变化解释，不能单独视为泛化提升。</li><li>Unseen Users 正样本率为 3.66%，PR-AUC=0.2749；由于 PR-AUC 强依赖基础率，应结合 ROC-AUC、Lift 和十分位梯度综合判断。</li><li>Lift@1% 在 Test 全量用户上为 9.30x，低于 Validation 的 11.17x；但 Top 1% 实际命中率达到 84.30%。</li><li>正样本率升高通常会抬高随机基线 PR-AUC；Lift 已除以基础正样本率，不会天然随基础率升高，LogLoss/Brier 则同时反映区分能力与概率校准。</li></ol>
+
+<div class="warning">
+<b>关于正样本率漂移的影响：</b><br>
+• Test 正样本率 (9.06%) 高于 Validation (7.18%)，会抬高随机基线 PR-AUC，需结合 ROC-AUC 与 Lift 判断<br>
+• Lift 是头部命中率相对本集合基础率的倍数，不会因为正样本率更高而天然变高<br>
+• Unseen Users 正样本率 (3.66%) 显著低于全量，应重点结合 ROC-AUC、Lift 和十分位梯度评价，而非直接比较 PR-AUC 绝对值<br>
+• LogLoss/Brier 同时受基础率和概率校准影响，跨人群比较时需谨慎<br>
+• 建议在实际部署时，根据目标人群的正样本率重新校准阈值
+</div>
+
+<h2>二、最佳模型 Test 表现</h2>
+<div class="metric-box">PR-AUC (全量): <b>0.5427</b></div>
+<div class="metric-box">PR-AUC (Unseen): <b>0.2749</b></div>
+<div class="metric-box">Lift@1% (全量): <b>9.30x</b></div>
+<div class="metric-box">Lift@1% (Unseen): <b>13.02x</b></div>
+
+<h2>三、Validation vs Test 指标对比</h2>
+<p>对比各实验在 Validation 和 Test 上的表现，观察泛化能力。</p>
+<img src="01_validation_vs_test.png" alt="Validation vs Test 对比">
+
+<h2>四、全量用户 vs Unseen Users 对比</h2>
+<p>Unseen Users 是指训练/验证集中未出现过的用户，用于评估模型对新用户的泛化能力。</p>
+<img src="02_all_vs_unseen_users.png" alt="全量 vs Unseen 对比">
+
+<h2>五、Test 十分位响应率</h2>
+<p>十分位曲线越单调下降，说明模型排序越可靠。左图为全量用户，右图为 Unseen Users。</p>
+<img src="03_test_deciles.png" alt="Test 十分位响应率">
+
+<h2>六、概率校准分析</h2>
+<p>点越接近对角线，说明预测概率与实际发生率越一致。校准良好的模型更适合用于概率估计。</p>
+<img src="04_calibration.png" alt="概率校准">
+
+<h2>七、正样本率漂移影响</h2>
+<p>正样本率的变化会直接影响 PR-AUC、Lift 和 LogLoss 的解释。</p>
+<img src="05_positive_rate_drift.png" alt="正样本率漂移">
+
+<h2>八、完整指标明细</h2>
+<table>
+<thead><tr>
+<th>实验</th>
+<th>Val 正样本率</th>
+<th>Test 正样本率 (全量)</th>
+<th>Test 正样本率 (Unseen)</th>
+<th>Val PR-AUC</th>
+<th>Test PR-AUC (全量)</th>
+<th>Test PR-AUC (Unseen)</th>
+<th>Test Lift@1%</th>
+</tr></thead>
+<tbody><tr><td>E0 全局正样本率</td><td>7.18%</td><td>9.06%</td><td>3.66%</td><td>0.0718</td><td>0.0906</td><td>0.0366</td><td>0.95x</td></tr><tr><td>E2 全平台RFM响应率</td><td>7.18%</td><td>9.06%</td><td>3.66%</td><td>0.2925</td><td>0.3487</td><td>0.1729</td><td>4.66x</td></tr><tr><td>E2 直播RFM响应率</td><td>7.18%</td><td>9.06%</td><td>3.66%</td><td>0.2936</td><td>0.3548</td><td>0.1900</td><td>4.57x</td></tr><tr><td>E5 直播+全平台特征</td><td>7.18%</td><td>9.06%</td><td>3.66%</td><td>0.5065</td><td>0.5427</td><td>0.2749</td><td>9.30x</td></tr></tbody>
+</table>
+
+<h2>九、部署建议</h2>
+<ul>
+<li>最佳模型 <b>E5 直播+全平台特征</b> 通过时间外 Test 验收，具备进入下一阶段离线阈值和业务策略评审的条件</li>
+<li>当前仅证明相关性排序能力，尚不能直接证明发券增量收益；正式上线仍需下一阶段随机实验或 uplift/因果评估</li>
+<li>部署时需要根据实际正样本率调整阈值，建议使用 Lift 曲线辅助决策</li>
+<li>定期监控模型效果，如发现正样本率漂移，需要重新训练或校准</li>
+</ul>
+
+<h2>十、文件位置</h2>
+<ul>
+<li>Test 指标：<code class="path">/Users/yukewei/Public/xhs/券敏感人群第一阶段/outputs/20260825_162323/test/test_metrics.csv</code></li>
+<li>Test 预测：<code class="path">/Users/yukewei/Public/xhs/券敏感人群第一阶段/outputs/20260825_162323/test/test_predictions.csv</code></li>
+<li>十分位明细：<code class="path">/Users/yukewei/Public/xhs/券敏感人群第一阶段/outputs/20260825_162323/test</code> 下各 <code>*_deciles.csv</code></li>
+</ul>
+</body></html>

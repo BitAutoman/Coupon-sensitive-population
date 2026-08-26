@@ -31,7 +31,12 @@ LOGGER = logging.getLogger("response_training")
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Response 模型训练与双轨 RFM 评估")
     parser.add_argument("--config", default="configs/training_config.json")
-    parser.add_argument("--evaluate-test", action="store_true", help="冻结方案后仅执行一次最终测试")
+    parser.add_argument("--evaluate-test", action="store_true",
+                       help="从已冻结 checkpoint 加载模型并执行一次最终测试；必须同时指定 --run-id")
+    parser.add_argument("--run-id", type=str, default=None,
+                       help="已冻结训练运行 ID，例如 20260825_162323；测试阶段不会重新训练或选参")
+    parser.add_argument("--dry-run", action="store_true",
+                       help="只校验冻结产物能否加载，不读取测试集、不产生测试指标")
     parser.add_argument("--sample-rows", type=int, default=None, help="仅用于开发验证：每个集合最多读取前 N 行")
     parser.add_argument("--skip-model", action="store_true", help="只执行数据校验和 RFM 基线")
     return parser.parse_args()
@@ -41,6 +46,150 @@ def load_config(path: str) -> Dict:
     config_path = ROOT / path
     with config_path.open("r", encoding="utf-8") as file:
         return json.load(file)
+
+
+def hash_user_ids(values: pd.Series) -> np.ndarray:
+    """保存不可逆的稳定 64 位用户摘要，用于测试集未见用户评估。"""
+    hashes = pd.util.hash_pandas_object(values.astype(str), index=False).to_numpy(dtype=np.uint64)
+    return np.unique(hashes)
+
+
+def freeze_training_selection(output_dir: Path, checkpoint_dir: Path,
+                              config: Dict, validation_metrics: List[Dict],
+                              frames: Dict[str, pd.DataFrame]) -> Dict:
+    """将验证集选择结果固化为测试阶段唯一可消费的清单。"""
+    model_names = {"E3_dual_rfm_raw", "E4_live_features", "E5_live_plus_platform"}
+    candidates = [item for item in validation_metrics if item.get("experiment") in model_names]
+    if not candidates:
+        raise RuntimeError("没有可冻结的模型实验")
+    primary_metric = config["evaluation"]["primary_metric"]
+    selected = max(candidates, key=lambda item: item[primary_metric])
+    experiment = selected["experiment"]
+    manifest = {
+        "run_id": output_dir.name,
+        "status": "frozen_for_test",
+        "selection_source": "validation_only",
+        "primary_metric": primary_metric,
+        "selected_experiment": experiment,
+        "validation_metric": float(selected[primary_metric]),
+        "best_iteration": int(selected["best_iteration"]),
+        "model_file": f"{experiment}.txt",
+        "preprocessor_file": f"{experiment}_preprocessor.pkl",
+        "metadata_file": f"{experiment}_metadata.json",
+        "rfm_file": "rfm_objects.pkl",
+        "resolved_config_file": str(output_dir / "resolved_config.json"),
+    }
+    save_json(manifest, checkpoint_dir / "frozen_manifest.json")
+    seen_hashes = np.unique(np.concatenate([
+        hash_user_ids(frames["train"]["user_id"]),
+        hash_user_ids(frames["validation"]["user_id"]),
+    ]))
+    np.save(checkpoint_dir / "seen_user_hashes.npy", seen_hashes, allow_pickle=False)
+    return manifest
+
+
+def setup_test_logging(run_id: str) -> None:
+    (ROOT / "logs").mkdir(parents=True, exist_ok=True)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+        handlers=[logging.StreamHandler(), logging.FileHandler(
+            ROOT / "logs" / f"test_{run_id}.log", encoding="utf-8")],
+        force=True,
+    )
+
+
+def load_frozen_bundle(run_id: str) -> Tuple[Dict, Dict, object, object, Dict, np.ndarray]:
+    """加载验证集阶段冻结的唯一模型及配套预处理/RFM，不做任何拟合。"""
+    checkpoint_dir = ROOT / "checkpoints" / run_id
+    output_dir = ROOT / "outputs" / run_id
+    manifest_path = checkpoint_dir / "frozen_manifest.json"
+    required = [manifest_path, output_dir / "resolved_config.json",
+                checkpoint_dir / "rfm_objects.pkl", checkpoint_dir / "seen_user_hashes.npy"]
+    missing = [str(path) for path in required if not path.exists()]
+    if missing:
+        raise FileNotFoundError(f"checkpoint 尚未完整冻结，缺少：{missing}")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    config = json.loads((output_dir / "resolved_config.json").read_text(encoding="utf-8"))
+    metadata = json.loads((checkpoint_dir / manifest["metadata_file"]).read_text(encoding="utf-8"))
+    with (checkpoint_dir / manifest["preprocessor_file"]).open("rb") as file:
+        preprocessor = pickle.load(file)
+    with (checkpoint_dir / manifest["rfm_file"]).open("rb") as file:
+        rfm_objects = pickle.load(file)
+    try:
+        import lightgbm as lgb
+    except ImportError as exc:
+        raise RuntimeError("缺少 lightgbm，请先安装 requirements.txt") from exc
+    model = lgb.Booster(model_file=str(checkpoint_dir / manifest["model_file"]))
+    seen_hashes = np.load(checkpoint_dir / "seen_user_hashes.npy", allow_pickle=False)
+    return manifest, config, model, preprocessor, {**rfm_objects, "metadata": metadata}, seen_hashes
+
+
+def run_frozen_test(args: argparse.Namespace) -> None:
+    if not args.run_id:
+        raise ValueError("--evaluate-test 必须同时指定 --run-id，例如：--run-id 20260825_162323")
+    setup_test_logging(args.run_id)
+    manifest, config, model, preprocessor, bundle, seen_hashes = load_frozen_bundle(args.run_id)
+    LOGGER.info("冻结产物加载成功：run_id=%s，模型=%s，validation_%s=%.6f",
+                args.run_id, manifest["selected_experiment"], manifest["primary_metric"],
+                manifest["validation_metric"])
+    if args.dry_run:
+        LOGGER.info("dry-run 完成：未读取测试集、未生成预测、未写测试指标")
+        return
+    if args.sample_rows is not None:
+        raise ValueError("正式 checkpoint 测试禁止使用 --sample-rows；如需校验加载请使用 --dry-run")
+
+    test_dir = ROOT / "outputs" / args.run_id / "test"
+    if (test_dir / "test_metrics.csv").exists():
+        raise FileExistsError(f"该 checkpoint 已有正式测试结果，拒绝重复评估：{test_dir}")
+    test_dir.mkdir(parents=True, exist_ok=True)
+    test = read_dataset(config["data"]["test"], config["data"]["encoding"])
+    target = config["target"]
+    features = bundle["metadata"]["features"]
+    required = set(config["features"]["id_columns"] + [target] + features)
+    missing = sorted(required - set(test.columns))
+    if missing:
+        raise ValueError(f"测试集缺少冻结模型所需字段：{missing}")
+    y_test = pd.to_numeric(test[target], errors="coerce").reset_index(drop=True)
+    if y_test.isna().any() or not set(y_test.unique()).issubset({0, 1}):
+        raise ValueError("测试集目标标签不是完整二元标签")
+    test_hashes = pd.util.hash_pandas_object(test["user_id"].astype(str), index=False).to_numpy(dtype=np.uint64)
+    unseen_mask = ~np.isin(test_hashes, seen_hashes)
+
+    rules = json.loads((ROOT / "outputs" / args.run_id / "rfm_rules_and_quality.json").read_text(encoding="utf-8"))
+    global_rate = float(rules["global_positive_rate"])
+    platform_scored = bundle["platform"].transform(test)
+    live_scored = bundle["live"].transform_scores(test)
+    predictions = {
+        "E0_global_rate": np.full(len(test), global_rate),
+        "E2_platform_rfm_probability": predict_smoothed_group_probability(
+            platform_scored["platform_rfm_cell"], rules["platform_probability_map"], global_rate).to_numpy(),
+        "E2_live_rfm_probability": bundle["live"].predict_probability(
+            live_scored, int(bundle["live"].selected_alpha_)).to_numpy(),
+    }
+    transformed = preprocessor.transform(test[features])
+    predictions[manifest["selected_experiment"]] = model.predict(
+        transformed, num_iteration=int(manifest["best_iteration"]))
+
+    reports = []
+    for experiment, prediction in predictions.items():
+        scope_reports, scope_deciles = evaluate_scopes(
+            y_test, prediction, unseen_mask, config["evaluation"]["lift_fractions"], experiment)
+        reports.extend(scope_reports)
+        for scope, deciles in scope_deciles.items():
+            deciles.to_csv(test_dir / f"{experiment}_{scope}_deciles.csv",
+                           index=False, encoding="utf-8-sig")
+    pd.DataFrame(reports).to_csv(test_dir / "test_metrics.csv", index=False, encoding="utf-8-sig")
+    prediction_frame = pd.DataFrame({
+        "dtm": test["dtm"], "user_id": test["user_id"], "label": y_test,
+        "is_unseen_user": unseen_mask,
+    })
+    for experiment, prediction in predictions.items():
+        prediction_frame[experiment] = prediction
+    prediction_frame.to_csv(test_dir / "test_predictions.csv", index=False, encoding="utf-8-sig")
+    save_json({"run_id": args.run_id, "manifest": manifest, "test_rows": len(test),
+               "unseen_rows": int(unseen_mask.sum())}, test_dir / "test_execution.json")
+    LOGGER.info("冻结模型测试完成；未执行训练或选参。结果目录：%s", test_dir)
 
 
 def setup_run() -> Tuple[Path, Path]:
@@ -308,13 +457,18 @@ def evaluate_scopes(y_true: pd.Series, prediction: np.ndarray, unseen_mask: pd.S
 
 def main() -> None:
     args = parse_args()
+    if args.dry_run and not args.evaluate_test:
+        raise ValueError("--dry-run 只能与 --evaluate-test --run-id 一起使用")
+    if args.evaluate_test:
+        run_frozen_test(args)
+        return
+    if args.run_id:
+        raise ValueError("--run-id 仅用于 --evaluate-test，训练阶段会自动生成新的 run-id")
     config = load_config(args.config)
     output_dir, checkpoint_dir = setup_run()
     save_json(config, output_dir / "resolved_config.json")
 
     split_paths = {"train": config["data"]["train"], "validation": config["data"]["validation"]}
-    if args.evaluate_test:
-        split_paths["test"] = config["data"]["test"]
     frames = {name: read_dataset(path, config["data"]["encoding"], args.sample_rows)
               for name, path in split_paths.items()}
     live_features, all_features, data_summary = validate_datasets(frames, config)
@@ -371,12 +525,27 @@ def main() -> None:
     validation_metrics = [e0_metrics, e1_metrics] + validation_reports + platform_probability_reports
 
     rfm_quality = {}
+    rfm_segment_rows = []
     for name in frames:
         rfm_quality[name] = {
             "live_lifecycle": live_scored[name]["live_lifecycle"].value_counts(dropna=False).to_dict(),
             "platform_lifecycle": platform_scored[name]["platform_lifecycle"].value_counts(dropna=False).to_dict(),
             "zero_gmv_with_order": int(live_scored[name]["zero_gmv_with_order"].sum()),
         }
+        target_values = pd.to_numeric(frames[name][config["target"]], errors="coerce")
+        for rfm_type, lifecycle in [
+            ("live", live_scored[name]["live_lifecycle"]),
+            ("platform", platform_scored[name]["platform_lifecycle"]),
+        ]:
+            segment_frame = pd.DataFrame({"segment": lifecycle.astype(str), "target": target_values})
+            summary = segment_frame.groupby("segment", observed=True)["target"].agg(
+                sample_count="size", positive_count="sum", response_rate="mean").reset_index()
+            summary["sample_share"] = summary["sample_count"] / len(segment_frame)
+            summary.insert(0, "dataset", name)
+            summary.insert(0, "rfm_type", rfm_type)
+            rfm_segment_rows.append(summary)
+    pd.concat(rfm_segment_rows, ignore_index=True).to_csv(
+        output_dir / "rfm_segment_summary.csv", index=False, encoding="utf-8-sig")
     save_json({
         "platform_edges": platform_rfm.edges_, "live_f_edges": live_rfm.f_edges_,
         "live_m_edges": live_rfm.m_edges_, "selected_alpha": alpha,
@@ -410,46 +579,12 @@ def main() -> None:
     pd.DataFrame(validation_metrics).to_csv(
         output_dir / "validation_metrics.csv", index=False, encoding="utf-8-sig")
 
-    if args.evaluate_test:
-        test_metrics = []
-        test = frames["test"]
-        y_test = test[config["target"]].reset_index(drop=True)
-        seen_users = set(frames["train"]["user_id"].astype(str)) | set(frames["validation"]["user_id"].astype(str))
-        unseen_mask = ~test["user_id"].astype(str).isin(seen_users).reset_index(drop=True)
-
-        test_predictions = {
-            "E0_global_rate": np.full(len(test), global_rate),
-            "E2_platform_rfm_probability": predict_smoothed_group_probability(
-                platform_scored["test"]["platform_rfm_cell"], platform_maps[platform_alpha], global_rate).to_numpy(),
-            "E2_live_rfm_probability": live_rfm.predict_probability(live_scored["test"], alpha).to_numpy(),
-        }
-        if experiments:
-            best = max(experiments, key=lambda item: item["metrics"][config["evaluation"]["primary_metric"]])
-            x_test = best["transformer"].transform(test[best["features"]])
-            test_predictions[best["name"]] = best["model"].predict(
-                x_test, num_iteration=best["model"].best_iteration)
-
-        for experiment_name, prediction in test_predictions.items():
-            reports, scope_deciles = evaluate_scopes(
-                y_test, prediction, unseen_mask, config["evaluation"]["lift_fractions"], experiment_name)
-            for report in reports:
-                if experiment_name == "E2_platform_rfm_probability":
-                    report["alpha"] = platform_alpha
-                elif experiment_name == "E2_live_rfm_probability":
-                    report["alpha"] = alpha
-            test_metrics.extend(reports)
-            for scope, deciles in scope_deciles.items():
-                deciles.to_csv(output_dir / f"test_{experiment_name}_{scope}_deciles.csv",
-                               index=False, encoding="utf-8-sig")
-
-        prediction_frame = pd.DataFrame({
-            "dtm": test["dtm"], "user_id": test["user_id"], "label": y_test,
-            "is_unseen_user": unseen_mask,
-        })
-        for experiment_name, prediction in test_predictions.items():
-            prediction_frame[experiment_name] = prediction
-        prediction_frame.to_csv(output_dir / "test_predictions.csv", index=False, encoding="utf-8-sig")
-        pd.DataFrame(test_metrics).to_csv(output_dir / "test_metrics.csv", index=False, encoding="utf-8-sig")
+    if experiments:
+        manifest = freeze_training_selection(
+            output_dir, checkpoint_dir, config, validation_metrics, frames)
+        LOGGER.info("已冻结最佳模型：%s，%s=%.4f；后续测试必须指定 --run-id %s",
+                    manifest["selected_experiment"], manifest["primary_metric"],
+                    manifest["validation_metric"], manifest["run_id"])
 
     LOGGER.info("训练流程完成，结果目录：%s", output_dir)
 

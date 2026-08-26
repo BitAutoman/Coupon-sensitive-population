@@ -1,4 +1,0 @@
-﻿left,right,overlap_users,left_overlap_rate,right_overlap_rate
-train,validation,59,0.005915379987968718,0.0059
-train,test,127,0.012733106075797073,0.0127
-validation,test,48,0.0048,0.0048

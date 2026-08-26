@@ -1,3 +1,0 @@
-﻿dataset,rows,columns,positive_rate,unique_users,date_min,date_max
-train,3000,159,0.058,3000,20260713,20260714
-validation,3000,159,0.06066666666666667,3000,20260726,20260726

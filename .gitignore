@@ -3,5 +3,14 @@ __pycache__/
 *.pyc
 .DS_Store
 
-# 原始数据集（过大，不纳入版本控制）
-data/raw/*.csv
+# 数据目录（数据文件过大，不纳入版本控制）
+data/
+
+# 本地整理区（旧 checkpoint / output 归档，仅本地保留）
+to_sort/
+
+# 运行日志
+logs/
+
+# 编辑器配置
+.vscode/
