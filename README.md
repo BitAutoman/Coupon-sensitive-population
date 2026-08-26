@@ -136,16 +136,17 @@ python src/main.py --evaluate-test --run-id 20260825_162323
 不要逐个打开 `outputs/<时间戳>/` 下的 CSV。先为目标运行生成 Review 页面：
 
 ```bash
-python3 src/visualize_results.py --run-id 20260825_101820
+python src/visualize_results.py --run-id 20260825_162323
 ```
 
 日常只需依次查看 `outputs/<时间戳>/review/` 下的文件：
 
-1. `00_先看这里_结果总览.html`：结论、实验指标和最佳模型位置；
-2. `01_实验效果对比.png`：判断主模型是否明显优于 RFM 基线；
-3. `02_十分位响应率.png`：判断高分到低分人群的实际响应率是否形成稳定梯度；
-4. `03_最佳模型特征重要性.png`：理解模型主要使用哪些特征，不作因果解释；
-5. `04_RFM分布漂移与响应率.png`：检查直播和全平台生命周期的 Train/Validation 漂移及响应率。
+1. `00_先看这里_结果总览.html`：结论、完整实验指标和最佳模型位置；
+2. `01_实验效果对比.png`：比较 ROC-AUC 与 AP；
+3. `02_TopK指标对比.png`：比较 K=1%/5%/10%/20% 下的 Precision、Recall 和 Lift；
+4. `03_十分位响应率.png`：判断高分到低分人群的实际响应率是否形成稳定梯度；
+5. `04_最佳模型特征重要性.png`：理解模型主要使用哪些特征，不作因果解释；
+6. `05_RFM分布漂移与响应率.png`：检查直播和全平台生命周期的 Train/Validation 漂移及响应率。
 
 只有排查问题时才看上级目录的底层文件：`validation_metrics.csv` 用于核对完整指标，`validation_*_deciles.csv` 用于检查分档细节，`*_feature_importance.csv` 用于查看全部特征，`rfm_rules_and_quality.json` 用于核对冻结规则。
 
@@ -156,7 +157,7 @@ python3 src/visualize_results.py --run-id 20260825_101820
 Test 完成后，基于已冻结的 run-id 生成 Test Review 报告（不重新运行 Test、不训练模型）：
 
 ```bash
-python3 src/visualize_test_results.py --run-id 20260825_162323
+python src/visualize_test_results.py --run-id 20260825_162323
 ```
 
 报告生成在 `outputs/<run-id>/test/review/` 下：
@@ -165,13 +166,13 @@ python3 src/visualize_test_results.py --run-id 20260825_162323
 2. `01_validation_vs_test.png`：Validation vs Test 指标对比，观察泛化能力
 3. `02_all_vs_unseen_users.png`：全量用户 vs Unseen Users 对比，评估对新用户的预测能力
 4. `03_test_deciles.png`：Test 十分位响应率，判断模型排序可靠性
-5. `04_calibration.png`：概率校准分析，评估预测概率与实际发生率的一致性
-6. `05_positive_rate_drift.png`：正样本率漂移对 PR-AUC、Lift、LogLoss 的影响分析
+5. `04_calibration.png`：概率校准分析（网页附录）
+6. `05_positive_rate_drift.png`：正样本率漂移分析（网页附录）
 
 **关键发现**（run-id `20260825_162323`）：
-- Test 正样本率（9.06%）高于 Validation（7.18%），会抬高随机基线 PR-AUC，因此 PR-AUC 绝对值需结合 ROC-AUC 与 Lift 解读；
-- E5 在 Test 全量用户上 ROC-AUC=0.9003、PR-AUC=0.5427、Lift@1%=9.30，Top 1% 实际命中率=84.30%；
-- Unseen Users 正样本率为 3.66%，E5 ROC-AUC=0.8724、PR-AUC=0.2749、Lift@1%=13.02；低 PR-AUC 部分来自更低基础率，不能单独断言泛化失效；
+- Test 正样本率（9.06%）高于 Validation（7.18%），会抬高随机基线 AP，因此 AP 绝对值需结合 ROC-AUC 与 Lift 解读；
+- E5 在 Test 全量用户上 ROC-AUC=0.9003、AP=0.5427、Lift@1%=9.30，Top 1% 实际命中率=84.30%；
+- Unseen Users 正样本率为 3.66%，E5 ROC-AUC=0.8724、AP=0.2749、Lift@1%=13.02；低 AP 部分来自更低基础率，不能单独断言泛化失效；
 - Test 证明了时间外相关性排序能力，但不能直接证明发券增量收益；上线前仍需阈值/预算评审及随机实验或 uplift/因果评估；
 - 若要将模型分数解释为真实概率，而不仅用于排序，需要使用独立校准集或后续时间窗进行概率校准。
 

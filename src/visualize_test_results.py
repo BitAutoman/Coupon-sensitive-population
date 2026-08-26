@@ -4,7 +4,7 @@
 基于已冻结 run-id，不重新运行 Test、不训练模型。
 覆盖：Validation vs Test 指标对比；Test 全量用户 vs unseen_users 对比；
 最佳模型及双轨 RFM 的 Test 十分位响应率；概率校准/实际率对比；
-正样本率漂移对 PR-AUC、Lift、LogLoss 的影响解释。
+正样本率漂移对 AP、Lift、LogLoss 的影响解释。
 """
 from __future__ import annotations
 
@@ -75,7 +75,7 @@ def load_test_metrics(test_dir: Path) -> pd.DataFrame:
 
 
 def load_validation_metrics(output_dir: Path) -> pd.DataFrame:
-    """加载 validation_metrics.csv，每个实验保留 PR-AUC 最高的一行"""
+    """加载 validation_metrics.csv，每个实验保留 AP 最高的一行"""
     metrics = pd.read_csv(output_dir / "validation_metrics.csv")
     metrics["average_precision"] = pd.to_numeric(metrics["average_precision"], errors="coerce")
     indices = metrics.groupby("experiment", sort=False)["average_precision"].idxmax()
@@ -100,7 +100,7 @@ def plot_validation_vs_test(val_metrics: pd.DataFrame, test_metrics: pd.DataFram
     fig, axes = plt.subplots(1, 3, figsize=(18, 7))
     
     metrics_to_plot = [
-        ("average_precision", "PR-AUC（主指标）", None),
+        ("average_precision", "AP（Average Precision）", None),
         ("roc_auc", "ROC-AUC", 0.5),
         ("lift_at_0.01", "Lift@1%", 1.0),
     ]
@@ -161,7 +161,7 @@ def plot_all_vs_unseen_users(test_metrics: pd.DataFrame, review_dir: Path) -> No
     fig, axes = plt.subplots(1, 3, figsize=(18, 7))
     
     metrics_to_plot = [
-        ("average_precision", "PR-AUC（主指标）", None),
+        ("average_precision", "AP（Average Precision）", None),
         ("roc_auc", "ROC-AUC", 0.5),
         ("lift_at_0.01", "Lift@1%", 1.0),
     ]
@@ -355,7 +355,7 @@ def plot_positive_rate_drift(val_metrics: pd.DataFrame, test_metrics: pd.DataFra
     ax.legend()
     ax.grid(axis='x', alpha=0.25)
     
-    # 图2：PR-AUC 变化
+    # 图2：AP 变化
     ax = axes[0, 1]
     val_prauc = [float(val_metrics[val_metrics["experiment"] == exp]["average_precision"].iloc[0]) 
                   for exp in common_exps_sorted]
@@ -367,8 +367,8 @@ def plot_positive_rate_drift(val_metrics: pd.DataFrame, test_metrics: pd.DataFra
     ax.barh(y + width, test_unseen_prauc, width, label="Test Unseen", color=CUSTOM_COLORS[4])
     ax.set_yticks(y)
     ax.set_yticklabels(labels)
-    ax.set_xlabel("PR-AUC", fontsize=11)
-    ax.set_title("PR-AUC 对比", fontsize=12, fontweight='bold')
+    ax.set_xlabel("AP", fontsize=11)
+    ax.set_title("AP 对比", fontsize=12, fontweight='bold')
     ax.legend()
     ax.grid(axis='x', alpha=0.25)
     
@@ -414,19 +414,16 @@ def plot_positive_rate_drift(val_metrics: pd.DataFrame, test_metrics: pd.DataFra
 
 
 def render_test_report(output_dir: Path, test_dir: Path, val_metrics: pd.DataFrame,
-                        test_metrics: pd.DataFrame, review_dir: Path) -> None:
+                        test_metrics: pd.DataFrame, review_dir: Path,
+                        frozen_experiment: str) -> None:
     """生成 Test Review HTML 报告"""
     test_all = test_metrics[test_metrics["evaluation_scope"] == "all_users"].set_index("experiment")
     test_unseen = test_metrics[test_metrics["evaluation_scope"] == "unseen_users"].set_index("experiment")
     
-    # 找出最佳模型
-    model_exps = ["E3_dual_rfm_raw", "E4_live_features", "E5_live_plus_platform"]
-    available_models = [e for e in model_exps if e in test_all.index]
-    if available_models:
-        best_exp = max(available_models, key=lambda x: float(test_all.loc[x, "average_precision"]))
-    else:
-        best_exp = test_all["average_precision"].idxmax()
-    
+    # 最终模型只能来自 Validation 冻结清单，严禁按 Test 指标再次选择。
+    best_exp = frozen_experiment
+    if best_exp not in test_all.index:
+        raise ValueError(f"冻结模型 {best_exp} 不在 Test 指标中")
     best_row = test_all.loc[best_exp]
     best_val_row = val_metrics[val_metrics["experiment"] == best_exp].iloc[0]
     
@@ -443,46 +440,39 @@ def render_test_report(output_dir: Path, test_dir: Path, val_metrics: pd.DataFra
     test_all_lift = float(best_row["lift_at_0.01"])
     test_unseen_lift = float(test_unseen.loc[best_exp, "lift_at_0.01"])
     
-    # 构建结论
+    unseen_row = test_unseen.loc[best_exp]
     conclusions = [
-        f"最佳模型 {DISPLAY_NAMES.get(best_exp, best_exp)} 在 Test 全量用户上 PR-AUC={test_all_prauc:.4f}，"
-        f"优于 Validation 的 {val_prauc:.4f}。",
-        f"Test 正样本率 ({test_all_positive_rate:.2f}%) 高于 Validation ({val_positive_rate:.2f}%)，"
-        f"PR-AUC 的提升需结合该基础率变化解释，不能单独视为泛化提升。",
-        f"Unseen Users 正样本率为 {test_unseen_positive_rate:.2f}%，PR-AUC={test_unseen_prauc:.4f}；"
-        f"由于 PR-AUC 强依赖基础率，应结合 ROC-AUC、Lift 和十分位梯度综合判断。",
-        f"Lift@1% 在 Test 全量用户上为 {test_all_lift:.2f}x，低于 Validation 的 {val_lift:.2f}x；"
-        f"但 Top 1% 实际命中率达到 {float(best_row['precision_at_0.01']):.2%}。",
-        "正样本率升高通常会抬高随机基线 PR-AUC；Lift 已除以基础正样本率，不会天然随基础率升高，"
-        "LogLoss/Brier 则同时反映区分能力与概率校准。",
+        f"冻结的 {DISPLAY_NAMES.get(best_exp, best_exp)} 在 Test 全量用户上 ROC-AUC={float(best_row['roc_auc']):.4f}、"
+        f"AP={test_all_prauc:.4f}，保持较好的时间外排序能力。",
+        f"Top 1% Precision={float(best_row['precision_at_0.01']):.1%}、Lift@1%={test_all_lift:.2f}x，"
+        "头部高响应用户仍能被明显聚集。",
+        f"Unseen Users 上 ROC-AUC={float(unseen_row['roc_auc']):.4f}、AP={test_unseen_prauc:.4f}、"
+        f"Lift@1%={test_unseen_lift:.2f}x，模型对未见用户仍具有排序能力。",
     ]
-    
-    # 构建指标表格
-    rows = []
-    for exp in test_all.index:
-        if exp in val_metrics["experiment"].values:
-            val_row = val_metrics[val_metrics["experiment"] == exp].iloc[0]
-            test_row = test_all.loc[exp]
-            unseen_row = test_unseen.loc[exp]
-            
-            rows.append(
-                "<tr>"
-                f"<td>{html.escape(DISPLAY_NAMES.get(exp, exp))}</td>"
-                f"<td>{float(val_row['positive_rate'])*100:.2f}%</td>"
-                f"<td>{float(test_row['positive_rate'])*100:.2f}%</td>"
-                f"<td>{float(unseen_row['positive_rate'])*100:.2f}%</td>"
-                f"<td>{float(val_row['average_precision']):.4f}</td>"
-                f"<td>{float(test_row['average_precision']):.4f}</td>"
-                f"<td>{float(unseen_row['average_precision']):.4f}</td>"
-                f"<td>{float(test_row['lift_at_0.01']):.2f}x</td>"
-                "</tr>"
-            )
+
+    distribution_rows = [
+        ("Validation", int(best_val_row["rows"]), float(best_val_row["positive_rate"])),
+        ("Test All", int(best_row["rows"]), float(best_row["positive_rate"])),
+        ("Test Unseen", int(unseen_row["rows"]), float(unseen_row["positive_rate"])),
+    ]
+    distribution_html = "".join(
+        f"<tr><td>{scope}</td><td>{rows:,}</td><td>{rate:.2%}</td></tr>"
+        for scope, rows, rate in distribution_rows)
+    performance_rows = [
+        ("Validation", best_val_row), ("Test All", best_row), ("Test Unseen", unseen_row)]
+    performance_html = "".join(
+        "<tr>" + f"<td>{scope}</td><td>{float(row['roc_auc']):.4f}</td>"
+        f"<td>{float(row['average_precision']):.4f}</td>"
+        f"<td>{float(row['precision_at_0.01']):.2%}</td>"
+        f"<td>{float(row['recall_at_0.01']):.2%}</td>"
+        f"<td>{float(row['lift_at_0.01']):.2f}x</td></tr>"
+        for scope, row in performance_rows)
     
     document = f"""<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><title>Test Review - Response 模型</title>
 <style>
-body{{font-family:'Times New Roman','Songti SC','STSong','SimSun',serif;max-width:1400px;margin:32px auto;padding:0 24px;color:#24303f;line-height:1.65}}
-h1,h2{{color:#16324f;font-family:'Times New Roman','Songti SC','STSong','SimSun',serif}}
+body{{font-family:'Times New Roman','Songti SC',serif;max-width:1400px;margin:32px auto;padding:0 24px;color:#24303f;line-height:1.65}}
+h1,h2{{color:#16324f;font-family:'Times New Roman','Songti SC',serif}}
 .card{{background:#FDEBAA;border-left:5px solid #EDC3A5;padding:14px 20px;margin:16px 0}}
 .warning{{background:#FCB6A5;border-left:5px solid #EDC3A5;padding:14px 20px;margin:16px 0}}
 table{{border-collapse:collapse;width:100%;margin:16px 0}}
@@ -504,20 +494,13 @@ code{{background:#F1F1F1;padding:2px 5px}}
 <h2>一、核心结论</h2>
 <ol>{''.join(f'<li>{html.escape(item)}</li>' for item in conclusions)}</ol>
 
-<div class="warning">
-<b>关于正样本率漂移的影响：</b><br>
-• Test 正样本率 ({test_all_positive_rate:.2f}%) 高于 Validation ({val_positive_rate:.2f}%)，会抬高随机基线 PR-AUC，需结合 ROC-AUC 与 Lift 判断<br>
-• Lift 是头部命中率相对本集合基础率的倍数，不会因为正样本率更高而天然变高<br>
-• Unseen Users 正样本率 ({test_unseen_positive_rate:.2f}%) 显著低于全量，应重点结合 ROC-AUC、Lift 和十分位梯度评价，而非直接比较 PR-AUC 绝对值<br>
-• LogLoss/Brier 同时受基础率和概率校准影响，跨人群比较时需谨慎<br>
-• 建议在实际部署时，根据目标人群的正样本率重新校准阈值
-</div>
+<div class="warning"><b>数据分布提醒：</b>Test 正样本率 {test_all_positive_rate:.2f}%，高于 Validation 的 {val_positive_rate:.2f}%；Unseen Users 为 {test_unseen_positive_rate:.2f}%。因此 AP 绝对值不能跨数据集直接比较，需要结合 ROC-AUC、Lift 综合判断。</div>
 
-<h2>二、最佳模型 Test 表现</h2>
-<div class="metric-box">PR-AUC (全量): <b>{test_all_prauc:.4f}</b></div>
-<div class="metric-box">PR-AUC (Unseen): <b>{test_unseen_prauc:.4f}</b></div>
-<div class="metric-box">Lift@1% (全量): <b>{test_all_lift:.2f}x</b></div>
-<div class="metric-box">Lift@1% (Unseen): <b>{test_unseen_lift:.2f}x</b></div>
+<h2>二、冻结 E5 的 Test All 成绩</h2>
+<div class="metric-box">ROC-AUC: <b>{float(best_row['roc_auc']):.4f}</b></div>
+<div class="metric-box">AP: <b>{test_all_prauc:.4f}</b></div>
+<div class="metric-box">Precision@1%: <b>{float(best_row['precision_at_0.01']):.2%}</b></div>
+<div class="metric-box">Lift@1%: <b>{test_all_lift:.2f}x</b></div>
 
 <h2>三、Validation vs Test 指标对比</h2>
 <p>对比各实验在 Validation 和 Test 上的表现，观察泛化能力。</p>
@@ -531,30 +514,12 @@ code{{background:#F1F1F1;padding:2px 5px}}
 <p>十分位曲线越单调下降，说明模型排序越可靠。左图为全量用户，右图为 Unseen Users。</p>
 <img src="03_test_deciles.png" alt="Test 十分位响应率">
 
-<h2>六、概率校准分析</h2>
-<p>点越接近对角线，说明预测概率与实际发生率越一致。校准良好的模型更适合用于概率估计。</p>
-<img src="04_calibration.png" alt="概率校准">
+<h2>六、数据集分布</h2>
+<table><thead><tr><th>Scope</th><th>样本量</th><th>正样本率</th></tr></thead><tbody>{distribution_html}</tbody></table>
+<h2>七、冻结 E5 表现</h2>
+<table><thead><tr><th>Scope</th><th>ROC-AUC</th><th>AP</th><th>Precision@1%</th><th>Recall@1%</th><th>Lift@1%</th></tr></thead><tbody>{performance_html}</tbody></table>
 
-<h2>七、正样本率漂移影响</h2>
-<p>正样本率的变化会直接影响 PR-AUC、Lift 和 LogLoss 的解释。</p>
-<img src="05_positive_rate_drift.png" alt="正样本率漂移">
-
-<h2>八、完整指标明细</h2>
-<table>
-<thead><tr>
-<th>实验</th>
-<th>Val 正样本率</th>
-<th>Test 正样本率 (全量)</th>
-<th>Test 正样本率 (Unseen)</th>
-<th>Val PR-AUC</th>
-<th>Test PR-AUC (全量)</th>
-<th>Test PR-AUC (Unseen)</th>
-<th>Test Lift@1%</th>
-</tr></thead>
-<tbody>{''.join(rows)}</tbody>
-</table>
-
-<h2>九、部署建议</h2>
+<h2>八、下一阶段建议</h2>
 <ul>
 <li>最佳模型 <b>{DISPLAY_NAMES.get(best_exp, best_exp)}</b> 通过时间外 Test 验收，具备进入下一阶段离线阈值和业务策略评审的条件</li>
 <li>当前仅证明相关性排序能力，尚不能直接证明发券增量收益；正式上线仍需下一阶段随机实验或 uplift/因果评估</li>
@@ -562,7 +527,12 @@ code{{background:#F1F1F1;padding:2px 5px}}
 <li>定期监控模型效果，如发现正样本率漂移，需要重新训练或校准</li>
 </ul>
 
-<h2>十、文件位置</h2>
+<details><summary><b>附录：概率校准与正样本率漂移诊断</b></summary>
+<p>当前模型优先用于排序/圈人，因此校准与漂移图下沉到附录。</p>
+<img src="04_calibration.png" alt="概率校准">
+<img src="05_positive_rate_drift.png" alt="正样本率漂移">
+</details>
+<h2>九、文件位置</h2>
 <ul>
 <li>Test 指标：<code class="path">{html.escape(str(test_dir / 'test_metrics.csv'))}</code></li>
 <li>Test 预测：<code class="path">{html.escape(str(test_dir / 'test_predictions.csv'))}</code></li>
@@ -576,6 +546,10 @@ code{{background:#F1F1F1;padding:2px 5px}}
 def main() -> None:
     args = parse_args()
     output_dir, checkpoint_dir, test_dir = resolve_run(args.run_id)
+    manifest_path = checkpoint_dir / "frozen_manifest.json"
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"缺少冻结清单：{manifest_path}")
+    frozen_experiment = json.loads(manifest_path.read_text(encoding="utf-8"))["selected_experiment"]
     
     review_dir = test_dir / "review"
     review_dir.mkdir(exist_ok=True)
@@ -601,7 +575,7 @@ def main() -> None:
     plot_positive_rate_drift(val_metrics, test_metrics, review_dir)
     
     print("生成 HTML 报告...")
-    render_test_report(output_dir, test_dir, val_metrics, test_metrics, review_dir)
+    render_test_report(output_dir, test_dir, val_metrics, test_metrics, review_dir, frozen_experiment)
     
     print(f"\nTest Review 报告已生成：{review_dir / '00_test_review.html'}")
 

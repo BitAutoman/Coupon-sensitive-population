@@ -78,7 +78,7 @@ def resolve_run(run_id: str = None) -> Tuple[Path, Path]:
 
 
 def selected_metrics(metrics: pd.DataFrame) -> pd.DataFrame:
-    """每个实验仅保留验证集 PR-AUC 最高的一行（即选中的 alpha/参数）。"""
+    """每个实验仅保留验证集 AP 最高的一行（即选中的 alpha/参数）。"""
     table = metrics.copy()
     table["average_precision"] = pd.to_numeric(table["average_precision"], errors="coerce")
     indices = table.groupby("experiment", sort=False)["average_precision"].idxmax()
@@ -91,11 +91,10 @@ def selected_metrics(metrics: pd.DataFrame) -> pd.DataFrame:
 def plot_experiment_comparison(table: pd.DataFrame, review_dir: Path) -> None:
     names = [DISPLAY_NAMES.get(value, value) for value in table["experiment"]]
     colors = [CUSTOM_COLORS[i % len(CUSTOM_COLORS)] for i in range(len(names))]
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
     plots = [
-        ("average_precision", "PR-AUC（主指标）", None),
+        ("average_precision", "AP（主指标）", None),
         ("roc_auc", "ROC-AUC", 0.5),
-        ("lift_at_0.01", "Lift@1%", 1.0),
     ]
     for axis, (column, title, baseline) in zip(axes, plots):
         values = table[column].astype(float).to_numpy()
@@ -109,9 +108,40 @@ def plot_experiment_comparison(table: pd.DataFrame, review_dir: Path) -> None:
         for bar, value in zip(bars, values):
             suffix = "x" if "lift" in column else ""
             axis.text(value + 0.005, bar.get_y() + bar.get_height() / 2, f"{value:.3f}{suffix}", va="center", fontsize=9)
-    fig.suptitle("Response 模型实验对比（每个实验仅保留验证集最优配置）", fontsize=15, fontweight="bold")
+    fig.suptitle("Response 模型排序指标对比（每个实验仅保留验证集最优配置）", fontsize=15, fontweight="bold")
     fig.tight_layout()
     fig.savefig(review_dir / "01_实验效果对比.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_topk_metrics(table: pd.DataFrame, review_dir: Path) -> None:
+    """展示四档 Precision、Recall 与 Lift，便于业务预算档位比较。"""
+    fractions = [0.01, 0.05, 0.10, 0.20]
+    labels = ["1%", "5%", "10%", "20%"]
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    model_table = table[~table["experiment"].eq("E0_global_rate")]
+    for index, (_, row) in enumerate(model_table.iterrows()):
+        color = CUSTOM_COLORS[index % len(CUSTOM_COLORS)]
+        name = DISPLAY_NAMES.get(row["experiment"], row["experiment"])
+        axes[0].plot(labels, [row[f"precision_at_{fraction:.2f}"] * 100 for fraction in fractions],
+                     marker="o", linewidth=2, color=color, label=name)
+        axes[1].plot(labels, [row[f"recall_at_{fraction:.2f}"] * 100 for fraction in fractions],
+                     marker="o", linewidth=2, color=color, label=name)
+        axes[2].plot(labels, [row[f"lift_at_{fraction:.2f}"] for fraction in fractions],
+                     marker="o", linewidth=2, color=color, label=name)
+    for axis, title, ylabel in [
+        (axes[0], "Precision@K", "Top-K 实际正样本率（%）"),
+        (axes[1], "Recall@K", "覆盖全部正样本比例（%）"),
+        (axes[2], "Lift@K", "相对总体正样本率倍数"),
+    ]:
+        axis.set_title(title, fontweight="bold")
+        axis.set_xlabel("圈选人群比例 K")
+        axis.set_ylabel(ylabel)
+        axis.grid(alpha=0.25)
+    axes[2].legend(fontsize=8, loc="best")
+    fig.suptitle("Top-K 业务指标对比：1% / 5% / 10% / 20%", fontsize=15, fontweight="bold")
+    fig.tight_layout()
+    fig.savefig(review_dir / "02_TopK指标对比.png", dpi=160, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -144,7 +174,7 @@ def plot_deciles(output_dir: Path, table: pd.DataFrame, review_dir: Path) -> Non
         axis.grid(alpha=0.25)
         axis.legend(fontsize=9)
         fig.tight_layout()
-        fig.savefig(review_dir / "02_十分位响应率.png", dpi=160, bbox_inches="tight")
+        fig.savefig(review_dir / "03_十分位响应率.png", dpi=160, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -161,7 +191,7 @@ def plot_feature_importance(output_dir: Path, best_experiment: str, review_dir: 
     axis.set_title(f"最佳模型 {DISPLAY_NAMES.get(best_experiment, best_experiment)}：Top 20 特征", fontsize=13, fontweight="bold")
     axis.grid(axis="x", alpha=0.25)
     fig.tight_layout()
-    fig.savefig(review_dir / "03_最佳模型特征重要性.png", dpi=160, bbox_inches="tight")
+    fig.savefig(review_dir / "04_最佳模型特征重要性.png", dpi=160, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -256,7 +286,7 @@ def plot_rfm(output_dir: Path, review_dir: Path) -> str:
         fig.suptitle("RFM 人群分布诊断（历史运行未保存分群响应率）", fontsize=15, fontweight="bold")
         fig.tight_layout()
         note = "历史运行仅能展示 Train/Validation 人群占比漂移；原始数据当前不可用，未伪造分群响应率。未来训练会自动输出响应率。"
-    fig.savefig(review_dir / "04_RFM分布漂移与响应率.png", dpi=160, bbox_inches="tight")
+    fig.savefig(review_dir / "05_RFM分布漂移与响应率.png", dpi=160, bbox_inches="tight")
     plt.close(fig)
     return note
 
@@ -270,44 +300,73 @@ def render_report(output_dir: Path, checkpoint_dir: Path, table: pd.DataFrame,
     preprocessor = checkpoint_dir / f"{best_name}_preprocessor.pkl"
     metadata = checkpoint_dir / f"{best_name}_metadata.json"
 
+    fractions = [0.01, 0.05, 0.10, 0.20]
     rows = []
     for _, row in table.iterrows():
+        precision_cells = "".join(f"<td>{row[f'precision_at_{fraction:.2f}']:.2%}</td>" for fraction in fractions)
+        recall_cells = "".join(f"<td>{row[f'recall_at_{fraction:.2f}']:.2%}</td>" for fraction in fractions)
+        lift_cells = "".join(f"<td>{row[f'lift_at_{fraction:.2f}']:.2f}x</td>" for fraction in fractions)
         rows.append(
             "<tr>"
             f"<td>{html.escape(DISPLAY_NAMES.get(row['experiment'], row['experiment']))}</td>"
             f"<td>{row['roc_auc']:.4f}</td><td>{row['average_precision']:.4f}</td>"
-            f"<td>{row['lift_at_0.01']:.2f}x</td><td>{row['lift_at_0.10']:.2f}x</td>"
-            f"<td>{int(row['best_iteration']) if pd.notna(row.get('best_iteration')) else '-'}</td>"
-            "</tr>"
+            f"{precision_cells}{recall_cells}{lift_cells}</tr>"
         )
     conclusions = [
-        f"最佳模型是 {DISPLAY_NAMES.get(best_name, best_name)}，验证集 PR-AUC={best['average_precision']:.4f}，ROC-AUC={best['roc_auc']:.4f}。",
-        f"Top 1% 人群实际命中率约为 {best['precision_at_0.01']:.1%}，是验证集平均水平的 {best['lift_at_0.01']:.2f} 倍。",
-        "E5 相比 E4 的 PR-AUC 增益较小但为正，说明全平台购买特征有补充价值，直播历史行为仍是主体。",
-        "正式 Test 尚未用于本轮最终报告；冻结方案后再执行一次 --evaluate-test。",
+        f"Validation 最终选择 {DISPLAY_NAMES.get(best_name, best_name)}，AP={best['average_precision']:.4f}，ROC-AUC={best['roc_auc']:.4f}。",
+        f"E4 → E5 增益较小，说明直播行为特征是主体，全平台 RFM 提供少量补充信息。",
+        f"E5 Top 1% Precision={best['precision_at_0.01']:.1%}，Lift={best['lift_at_0.01']:.2f}，头部人群聚集能力较强。",
     ]
     document = f"""<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><title>Response 模型 Review</title>
 <style>
-body{{font-family:'Times New Roman','Songti SC','STSong','SimSun',serif;max-width:1200px;margin:32px auto;padding:0 24px;color:#24303f;line-height:1.65}}
-h1,h2{{color:#16324f;font-family:'Times New Roman','Songti SC','STSong','SimSun',serif}} .card{{background:#FDEBAA;border-left:5px solid #EDC3A5;padding:14px 20px;margin:16px 0}}
-table{{border-collapse:collapse;width:100%}} th,td{{border:1px solid #d8dee8;padding:8px;text-align:right}} th:first-child,td:first-child{{text-align:left}} th{{background:#DBE4FB}}
+body{{font-family:'Times New Roman','Songti SC',serif;max-width:1200px;margin:32px auto;padding:0 24px;color:#24303f;line-height:1.65}}
+h1,h2{{color:#16324f;font-family:'Times New Roman','Songti SC',serif}} .card{{background:#FDEBAA;border-left:5px solid #EDC3A5;padding:14px 20px;margin:16px 0}}
+.table-wrap{{overflow-x:auto}} table{{border-collapse:collapse;width:max-content;min-width:100%;font-size:13px}} th,td{{border:1px solid #d8dee8;padding:7px;text-align:right;white-space:nowrap}} th:first-child,td:first-child{{text-align:left;position:sticky;left:0;background:white}} th{{background:#DBE4FB}} th:first-child{{background:#DBE4FB;z-index:2}}
 img{{width:100%;border:1px solid #ddd;margin:12px 0 28px}} code{{background:#F1F1F1;padding:2px 5px}} .path{{word-break:break-all}}
 </style></head><body>
 <h1>Response 模型训练 Review 总览</h1>
-<div class="card"><b>你日常只需要看这个页面。</b>同目录 4 张图用于辅助判断；上级目录的 CSV/JSON 是追溯明细，不需要逐个打开。</div>
-<h2>一、结论先行</h2><ol>{''.join(f'<li>{html.escape(item)}</li>' for item in conclusions)}</ol>
-<h2>二、实验对比</h2><table><thead><tr><th>实验</th><th>ROC-AUC</th><th>PR-AUC</th><th>Lift@1%</th><th>Lift@10%</th><th>最佳轮数</th></tr></thead><tbody>{''.join(rows)}</tbody></table>
-<img src="01_实验效果对比.png" alt="实验效果对比">
-<h2>三、分数是否真的分出了高低人群</h2><p>重点看十分位曲线是否从第 1 档到第 10 档整体下降。第 1 档代表模型认为最可能用平台券直播复购的人群。</p><img src="02_十分位响应率.png" alt="十分位响应率">
-<h2>四、模型主要依据什么判断</h2><p>重要性表示模型使用频率和信息增益，不等于因果关系。</p><img src="03_最佳模型特征重要性.png" alt="特征重要性">
-<h2>五、RFM 数据质量诊断</h2><p>{{rfm_note}}</p><p>直播和全平台生命周期定义不同，上下两行分别解释，不能将两套分群作一一对应比较。</p><img src="04_RFM分布漂移与响应率.png" alt="RFM分布漂移与响应率">
-<h2>六、最佳模型文件</h2><ul>
+<div class="card"><b>你日常只需要看这个页面。</b>同目录 5 张图用于辅助判断；上级目录的 CSV/JSON 是追溯明细，不需要逐个打开。</div>
+<h2>一、最终结论</h2><ol>{''.join(f'<li>{html.escape(item)}</li>' for item in conclusions)}</ol>
+<h2>二、实验对比</h2>
+<p>AP 为代码实际计算的 Average Precision；Top-K 指标统一展示 K=1%、5%、10%、20%。表格可横向滚动，最佳轮数属于训练细节，已下沉到 checkpoint metadata。</p>
+<div class="table-wrap"><table><thead><tr>
+<th>实验</th><th>ROC-AUC</th><th>AP</th>
+<th>Precision@1%</th><th>Precision@5%</th><th>Precision@10%</th><th>Precision@20%</th>
+<th>Recall@1%</th><th>Recall@5%</th><th>Recall@10%</th><th>Recall@20%</th>
+<th>Lift@1%</th><th>Lift@5%</th><th>Lift@10%</th><th>Lift@20%</th>
+</tr></thead><tbody>{''.join(rows)}</tbody></table></div>
+<img src="01_实验效果对比.png" alt="ROC-AUC与AP实验对比">
+<img src="02_TopK指标对比.png" alt="Top-K指标对比">
+<h2>三、为什么选择 E5</h2>
+<pre style="background:#F1F1F1;padding:12px;border-radius:4px;font-family:monospace">
+E0～E2：RFM Baseline
+        ↓
+E3：RFM + LightGBM，效果明显提升
+        ↓
+E4：加入完整直播特征，再次明显提升
+        ↓
+E5：加入全平台特征，小幅继续提升
+</pre>
+<h2>四、辅助诊断</h2>
+<h3>1. 分数是否真的分出了高低人群</h3>
+<p>重点看十分位曲线是否从第 1 档到第 10 档整体下降。第 1 档代表模型认为最可能用平台券直播复购的人群。</p>
+<img src="03_十分位响应率.png" alt="十分位响应率">
+<h3>2. 模型主要依据什么判断</h3>
+<p>重要性表示模型使用频率和信息增益，不等于因果关系。</p>
+<img src="04_最佳模型特征重要性.png" alt="特征重要性">
+<h3>3. RFM 数据质量诊断</h3>
+<p>{{rfm_note}}</p>
+<p>直播和全平台生命周期定义不同，上下两行分别解释，不能将两套分群作一一对应比较。</p>
+<img src="05_RFM分布漂移与响应率.png" alt="RFM分布漂移与响应率">
+<h2>五、产物位置</h2>
+<ul>
 <li>LightGBM 权重：<code class="path">{html.escape(str(weights))}</code></li>
 <li>预处理器：<code class="path">{html.escape(str(preprocessor))}</code></li>
-<li>特征与参数元数据：<code class="path">{html.escape(str(metadata))}</code></li></ul>
+<li>特征与参数元数据：<code class="path">{html.escape(str(metadata))}</code></li>
+</ul>
 <p><b>注意：</b>部署或批量预测时，权重和预处理器必须配套使用，不能只拿模型 txt。</p>
-<h2>七、什么时候才需要看底层 CSV</h2><ul>
+<h2>附录：什么时候才需要看底层 CSV</h2><ul>
 <li><code>validation_metrics.csv</code>：核对完整指标。</li>
 <li><code>validation_*_deciles.csv</code>：排查十分位曲线细节。</li>
 <li><code>*_feature_importance.csv</code>：查看全部特征重要性。</li>
@@ -327,6 +386,7 @@ def main() -> None:
     model_rows = table[table["experiment"].isin(["E3_dual_rfm_raw", "E4_live_features", "E5_live_plus_platform"])]
     best_name = str(model_rows.loc[model_rows["average_precision"].idxmax(), "experiment"])
     plot_experiment_comparison(table, review_dir)
+    plot_topk_metrics(table, review_dir)
     plot_deciles(output_dir, table, review_dir)
     plot_feature_importance(output_dir, best_name, review_dir)
     rfm_note = plot_rfm(output_dir, review_dir)

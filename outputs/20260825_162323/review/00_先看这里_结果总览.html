@@ -1,25 +1,53 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><title>Response 模型 Review</title>
 <style>
-body{font-family:'Times New Roman','Songti SC','STSong','SimSun',serif;max-width:1200px;margin:32px auto;padding:0 24px;color:#24303f;line-height:1.65}
-h1,h2{color:#16324f;font-family:'Times New Roman','Songti SC','STSong','SimSun',serif} .card{background:#FDEBAA;border-left:5px solid #EDC3A5;padding:14px 20px;margin:16px 0}
-table{border-collapse:collapse;width:100%} th,td{border:1px solid #d8dee8;padding:8px;text-align:right} th:first-child,td:first-child{text-align:left} th{background:#DBE4FB}
+body{font-family:'Times New Roman','Songti SC',serif;max-width:1200px;margin:32px auto;padding:0 24px;color:#24303f;line-height:1.65}
+h1,h2{color:#16324f;font-family:'Times New Roman','Songti SC',serif} .card{background:#FDEBAA;border-left:5px solid #EDC3A5;padding:14px 20px;margin:16px 0}
+.table-wrap{overflow-x:auto} table{border-collapse:collapse;width:max-content;min-width:100%;font-size:13px} th,td{border:1px solid #d8dee8;padding:7px;text-align:right;white-space:nowrap} th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:white} th{background:#DBE4FB} th:first-child{background:#DBE4FB;z-index:2}
 img{width:100%;border:1px solid #ddd;margin:12px 0 28px} code{background:#F1F1F1;padding:2px 5px} .path{word-break:break-all}
 </style></head><body>
 <h1>Response 模型训练 Review 总览</h1>
-<div class="card"><b>你日常只需要看这个页面。</b>同目录 4 张图用于辅助判断；上级目录的 CSV/JSON 是追溯明细，不需要逐个打开。</div>
-<h2>一、结论先行</h2><ol><li>最佳模型是 E5 直播+全平台特征，验证集 PR-AUC=0.5065，ROC-AUC=0.9080。</li><li>Top 1% 人群实际命中率约为 80.1%，是验证集平均水平的 11.17 倍。</li><li>E5 相比 E4 的 PR-AUC 增益较小但为正，说明全平台购买特征有补充价值，直播历史行为仍是主体。</li><li>正式 Test 尚未用于本轮最终报告；冻结方案后再执行一次 --evaluate-test。</li></ol>
-<h2>二、实验对比</h2><table><thead><tr><th>实验</th><th>ROC-AUC</th><th>PR-AUC</th><th>Lift@1%</th><th>Lift@10%</th><th>最佳轮数</th></tr></thead><tbody><tr><td>E0 全局正样本率</td><td>0.5000</td><td>0.0718</td><td>0.91x</td><td>0.97x</td><td>-</td></tr><tr><td>E1 直播RFM规则分</td><td>0.8742</td><td>0.2865</td><td>4.37x</td><td>4.57x</td><td>-</td></tr><tr><td>E2 直播RFM响应率</td><td>0.8773</td><td>0.2936</td><td>4.37x</td><td>4.57x</td><td>-</td></tr><tr><td>E2 全平台RFM响应率</td><td>0.8652</td><td>0.2925</td><td>4.82x</td><td>4.72x</td><td>-</td></tr><tr><td>E3 双轨RFM轻量模型</td><td>0.8988</td><td>0.4611</td><td>9.85x</td><td>5.80x</td><td>119</td></tr><tr><td>E4 143个直播特征</td><td>0.9076</td><td>0.5051</td><td>11.17x</td><td>5.98x</td><td>296</td></tr><tr><td>E5 直播+全平台特征</td><td>0.9080</td><td>0.5065</td><td>11.17x</td><td>5.99x</td><td>258</td></tr></tbody></table>
-<img src="01_实验效果对比.png" alt="实验效果对比">
-<h2>三、分数是否真的分出了高低人群</h2><p>重点看十分位曲线是否从第 1 档到第 10 档整体下降。第 1 档代表模型认为最可能用平台券直播复购的人群。</p><img src="02_十分位响应率.png" alt="十分位响应率">
-<h2>四、模型主要依据什么判断</h2><p>重要性表示模型使用频率和信息增益，不等于因果关系。</p><img src="03_最佳模型特征重要性.png" alt="特征重要性">
-<h2>五、RFM 数据质量诊断</h2><p>图中同时展示 Train/Validation 人群占比漂移和各生命周期的平台券直播复购率。</p><p>直播和全平台生命周期定义不同，上下两行分别解释，不能将两套分群作一一对应比较。</p><img src="04_RFM分布漂移与响应率.png" alt="RFM分布漂移与响应率">
-<h2>六、最佳模型文件</h2><ul>
+<div class="card"><b>你日常只需要看这个页面。</b>同目录 5 张图用于辅助判断；上级目录的 CSV/JSON 是追溯明细，不需要逐个打开。</div>
+<h2>一、最终结论</h2><ol><li>Validation 最终选择 E5 直播+全平台特征，AP=0.5065，ROC-AUC=0.9080。</li><li>E4 → E5 增益较小，说明直播行为特征是主体，全平台 RFM 提供少量补充信息。</li><li>E5 Top 1% Precision=80.1%，Lift=11.17，头部人群聚集能力较强。</li></ol>
+<h2>二、实验对比</h2>
+<p>AP 为代码实际计算的 Average Precision；Top-K 指标统一展示 K=1%、5%、10%、20%。表格可横向滚动，最佳轮数属于训练细节，已下沉到 checkpoint metadata。</p>
+<div class="table-wrap"><table><thead><tr>
+<th>实验</th><th>ROC-AUC</th><th>AP</th>
+<th>Precision@1%</th><th>Precision@5%</th><th>Precision@10%</th><th>Precision@20%</th>
+<th>Recall@1%</th><th>Recall@5%</th><th>Recall@10%</th><th>Recall@20%</th>
+<th>Lift@1%</th><th>Lift@5%</th><th>Lift@10%</th><th>Lift@20%</th>
+</tr></thead><tbody><tr><td>E0 全局正样本率</td><td>0.5000</td><td>0.0718</td><td>6.56%</td><td>6.74%</td><td>6.99%</td><td>6.97%</td><td>0.91%</td><td>4.70%</td><td>9.74%</td><td>19.43%</td><td>0.91x</td><td>0.94x</td><td>0.97x</td><td>0.97x</td></tr><tr><td>E1 直播RFM规则分</td><td>0.8742</td><td>0.2865</td><td>31.38%</td><td>32.68%</td><td>32.79%</td><td>27.48%</td><td>4.37%</td><td>22.77%</td><td>45.69%</td><td>76.60%</td><td>4.37x</td><td>4.55x</td><td>4.57x</td><td>3.83x</td></tr><tr><td>E2 直播RFM响应率</td><td>0.8773</td><td>0.2936</td><td>31.38%</td><td>32.68%</td><td>32.79%</td><td>28.11%</td><td>4.37%</td><td>22.77%</td><td>45.69%</td><td>78.33%</td><td>4.37x</td><td>4.55x</td><td>4.57x</td><td>3.92x</td></tr><tr><td>E2 全平台RFM响应率</td><td>0.8652</td><td>0.2925</td><td>34.61%</td><td>35.24%</td><td>33.89%</td><td>27.05%</td><td>4.82%</td><td>24.55%</td><td>47.22%</td><td>75.38%</td><td>4.82x</td><td>4.91x</td><td>4.72x</td><td>3.77x</td></tr><tr><td>E3 双轨RFM轻量模型</td><td>0.8988</td><td>0.4611</td><td>70.70%</td><td>53.99%</td><td>41.60%</td><td>28.39%</td><td>9.86%</td><td>37.62%</td><td>57.97%</td><td>79.12%</td><td>9.85x</td><td>7.52x</td><td>5.80x</td><td>3.96x</td></tr><tr><td>E4 143个直播特征</td><td>0.9076</td><td>0.5051</td><td>80.13%</td><td>56.61%</td><td>42.93%</td><td>29.06%</td><td>11.17%</td><td>39.45%</td><td>59.83%</td><td>80.98%</td><td>11.17x</td><td>7.89x</td><td>5.98x</td><td>4.05x</td></tr><tr><td>E5 直播+全平台特征</td><td>0.9080</td><td>0.5065</td><td>80.13%</td><td>56.67%</td><td>42.97%</td><td>29.01%</td><td>11.17%</td><td>39.49%</td><td>59.88%</td><td>80.86%</td><td>11.17x</td><td>7.90x</td><td>5.99x</td><td>4.04x</td></tr></tbody></table></div>
+<img src="01_实验效果对比.png" alt="ROC-AUC与AP实验对比">
+<img src="02_TopK指标对比.png" alt="Top-K指标对比">
+<h2>三、为什么选择 E5</h2>
+<pre style="background:#F1F1F1;padding:12px;border-radius:4px;font-family:monospace">
+E0～E2：RFM Baseline
+        ↓
+E3：RFM + LightGBM，效果明显提升
+        ↓
+E4：加入完整直播特征，再次明显提升
+        ↓
+E5：加入全平台特征，小幅继续提升
+</pre>
+<h2>四、辅助诊断</h2>
+<h3>1. 分数是否真的分出了高低人群</h3>
+<p>重点看十分位曲线是否从第 1 档到第 10 档整体下降。第 1 档代表模型认为最可能用平台券直播复购的人群。</p>
+<img src="03_十分位响应率.png" alt="十分位响应率">
+<h3>2. 模型主要依据什么判断</h3>
+<p>重要性表示模型使用频率和信息增益，不等于因果关系。</p>
+<img src="04_最佳模型特征重要性.png" alt="特征重要性">
+<h3>3. RFM 数据质量诊断</h3>
+<p>图中同时展示 Train/Validation 人群占比漂移和各生命周期的平台券直播复购率。</p>
+<p>直播和全平台生命周期定义不同，上下两行分别解释，不能将两套分群作一一对应比较。</p>
+<img src="05_RFM分布漂移与响应率.png" alt="RFM分布漂移与响应率">
+<h2>五、产物位置</h2>
+<ul>
 <li>LightGBM 权重：<code class="path">/Users/yukewei/Public/xhs/券敏感人群第一阶段/checkpoints/20260825_162323/E5_live_plus_platform.txt</code></li>
 <li>预处理器：<code class="path">/Users/yukewei/Public/xhs/券敏感人群第一阶段/checkpoints/20260825_162323/E5_live_plus_platform_preprocessor.pkl</code></li>
-<li>特征与参数元数据：<code class="path">/Users/yukewei/Public/xhs/券敏感人群第一阶段/checkpoints/20260825_162323/E5_live_plus_platform_metadata.json</code></li></ul>
+<li>特征与参数元数据：<code class="path">/Users/yukewei/Public/xhs/券敏感人群第一阶段/checkpoints/20260825_162323/E5_live_plus_platform_metadata.json</code></li>
+</ul>
 <p><b>注意：</b>部署或批量预测时，权重和预处理器必须配套使用，不能只拿模型 txt。</p>
-<h2>七、什么时候才需要看底层 CSV</h2><ul>
+<h2>附录：什么时候才需要看底层 CSV</h2><ul>
 <li><code>validation_metrics.csv</code>：核对完整指标。</li>
 <li><code>validation_*_deciles.csv</code>：排查十分位曲线细节。</li>
 <li><code>*_feature_importance.csv</code>：查看全部特征重要性。</li>
